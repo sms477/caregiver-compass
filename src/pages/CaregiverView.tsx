@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useApp } from "@/contexts/AppContext";
 import { MOCK_RESIDENTS, MOCK_CAREGIVERS } from "@/data/mockData";
 import { ADLReport } from "@/types";
@@ -49,13 +49,24 @@ const CaregiverView = () => {
     }
   };
 
-  const elapsedTime = () => {
-    if (!activeShift) return "0h 0m";
-    const diff = Date.now() - new Date(activeShift.clockIn).getTime();
-    const h = Math.floor(diff / 3600000);
-    const m = Math.floor((diff % 3600000) / 60000);
-    return `${h}h ${m}m`;
-  };
+  const [elapsed, setElapsed] = useState("0h 0m");
+
+  useEffect(() => {
+    if (!activeShift) {
+      setElapsed("0h 0m");
+      return;
+    }
+    const tick = () => {
+      const diff = Date.now() - new Date(activeShift.clockIn).getTime();
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      setElapsed(`${h}h ${m}m ${s}s`);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [activeShift]);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -100,7 +111,7 @@ const CaregiverView = () => {
           />
         ) : tab === "clock" ? (
           <ShiftView
-            elapsed={elapsedTime()}
+            elapsed={elapsed}
             shift={activeShift}
             isSleeping={!!isSleeping}
             hasActiveInterruption={!!hasActiveInterruption}
