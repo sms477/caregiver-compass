@@ -9,7 +9,7 @@ export interface Medication {
   id: string;
   name: string;
   dosage: string;
-  schedule: string; // e.g., "Morning", "Evening"
+  schedule: string;
 }
 
 export interface Shift {
@@ -53,6 +53,80 @@ export interface EMARRecord {
   administeredBy: string;
 }
 
+/* ---- Payroll Types ---- */
+
+export type FilingStatus = 'single' | 'married' | 'head_of_household';
+
+export interface Employee {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  hourlyRate: number;
+  filingStatus: FilingStatus;
+  federalAllowances: number;
+  stateAllowances: number;
+  startDate: string;
+  role: string;
+}
+
+export interface TaxBreakdown {
+  federalIncome: number;
+  socialSecurity: number;
+  medicare: number;
+  stateIncome: number;
+  sdi: number; // CA State Disability Insurance
+  totalTaxes: number;
+}
+
+export interface PayrollLineItem {
+  employeeId: string;
+  employeeName: string;
+  hourlyRate: number;
+  regularHours: number;
+  overtimeHours: number;
+  mealPenaltyHours: number;
+  sleepDeductionHours: number;
+  grossHours: number;
+  grossPay: number;
+  taxes: TaxBreakdown;
+  netPay: number;
+  shifts: Shift[];
+}
+
+export interface PayPeriod {
+  id: string;
+  startDate: Date;
+  endDate: Date;
+  payDate: Date;
+  label: string;
+}
+
+export type PayRunStatus = 'draft' | 'reviewing' | 'approved' | 'paid';
+
+export interface PayRun {
+  id: string;
+  payPeriod: PayPeriod;
+  status: PayRunStatus;
+  lineItems: PayrollLineItem[];
+  totalGrossPay: number;
+  totalTaxes: number;
+  totalNetPay: number;
+  approvedAt: Date | null;
+  createdAt: Date;
+}
+
+export interface PayStub {
+  id: string;
+  payRunId: string;
+  employeeId: string;
+  employeeName: string;
+  payPeriod: PayPeriod;
+  lineItem: PayrollLineItem;
+  paidAt: Date;
+}
+
+// Legacy compat
 export interface PayrollEntry {
   caregiverId: string;
   caregiverName: string;
