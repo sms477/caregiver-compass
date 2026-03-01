@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from "react";
-import { Shift, ADLReport, EMARRecord, SleepInterruption, UserRole } from "@/types";
-import { MOCK_SHIFTS, MOCK_CAREGIVERS } from "@/data/mockData";
+import { Shift, ADLReport, EMARRecord, SleepInterruption, UserRole, Employee, PayRun, PayStub } from "@/types";
+import { MOCK_SHIFTS, MOCK_EMPLOYEES } from "@/data/mockData";
 
 interface AppState {
   role: UserRole | null;
@@ -17,6 +17,13 @@ interface AppState {
   resumeSleep: () => void;
   addADLReport: (report: ADLReport) => void;
   addEMARRecord: (record: Omit<EMARRecord, "id">) => void;
+  employees: Employee[];
+  updateEmployee: (emp: Employee) => void;
+  payRuns: PayRun[];
+  addPayRun: (run: PayRun) => void;
+  updatePayRunStatus: (id: string, status: PayRun["status"]) => void;
+  payStubs: PayStub[];
+  addPayStubs: (stubs: PayStub[]) => void;
 }
 
 const AppContext = createContext<AppState | null>(null);
@@ -29,11 +36,14 @@ export const useApp = () => {
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [role, setRole] = useState<UserRole | null>(null);
-  const [currentCaregiverId, setCurrentCaregiverId] = useState(MOCK_CAREGIVERS[0].id);
+  const [currentCaregiverId, setCurrentCaregiverId] = useState(MOCK_EMPLOYEES[0].id);
   const [shifts, setShifts] = useState<Shift[]>(MOCK_SHIFTS);
   const [activeShift, setActiveShift] = useState<Shift | null>(null);
+  const [employees, setEmployees] = useState<Employee[]>(MOCK_EMPLOYEES);
+  const [payRuns, setPayRuns] = useState<PayRun[]>([]);
+  const [payStubs, setPayStubs] = useState<PayStub[]>([]);
 
-  const caregiverName = MOCK_CAREGIVERS.find(c => c.id === currentCaregiverId)?.name || "Unknown";
+  const caregiverName = MOCK_EMPLOYEES.find(c => c.id === currentCaregiverId)?.name || "Unknown";
 
   const clockIn = useCallback((is24Hour: boolean) => {
     const newShift: Shift = {
@@ -56,12 +66,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const clockOut = useCallback((mealBreakTaken: boolean, mealBreakReason: string | null) => {
     if (!activeShift) return;
-    const completed: Shift = {
-      ...activeShift,
-      clockOut: new Date(),
-      mealBreakTaken,
-      mealBreakReason,
-    };
+    const completed: Shift = { ...activeShift, clockOut: new Date(), mealBreakTaken, mealBreakReason };
     setShifts(prev => [completed, ...prev]);
     setActiveShift(null);
   }, [activeShift]);
@@ -78,16 +83,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const logSleepInterruption = useCallback((reason: string) => {
     if (!activeShift) return;
-    const interruption: SleepInterruption = {
-      id: `si-${Date.now()}`,
-      wakeTime: new Date(),
-      resumeTime: null,
-      reason,
-    };
-    setActiveShift(prev => prev ? {
-      ...prev,
-      sleepInterruptions: [...prev.sleepInterruptions, interruption],
-    } : null);
+    const interruption: SleepInterruption = { id: `si-${Date.now()}`, wakeTime: new Date(), resumeTime: null, reason };
+    setActiveShift(prev => prev ? { ...prev, sleepInterruptions: [...prev.sleepInterruptions, interruption] } : null);
   }, [activeShift]);
 
   const resumeSleep = useCallback(() => {
@@ -96,29 +93,37 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       if (!prev) return null;
       const interruptions = [...prev.sleepInterruptions];
       const last = interruptions[interruptions.length - 1];
-      if (last && !last.resumeTime) {
-        interruptions[interruptions.length - 1] = { ...last, resumeTime: new Date() };
-      }
+      if (last && !last.resumeTime) interruptions[interruptions.length - 1] = { ...last, resumeTime: new Date() };
       return { ...prev, sleepInterruptions: interruptions };
     });
   }, [activeShift]);
 
   const addADLReport = useCallback((report: ADLReport) => {
     if (!activeShift) return;
-    setActiveShift(prev => prev ? {
-      ...prev,
-      adlReports: [...prev.adlReports.filter(r => r.residentId !== report.residentId), report],
-    } : null);
+    setActiveShift(prev => prev ? { ...prev, adlReports: [...prev.adlReports.filter(r => r.residentId !== report.residentId), report] } : null);
   }, [activeShift]);
 
   const addEMARRecord = useCallback((record: Omit<EMARRecord, "id">) => {
     if (!activeShift) return;
     const full: EMARRecord = { ...record, id: `em-${Date.now()}` };
-    setActiveShift(prev => prev ? {
-      ...prev,
-      emarRecords: [...prev.emarRecords, full],
-    } : null);
+    setActiveShift(prev => prev ? { ...prev, emarRecords: [...prev.emarRecords, full] } : null);
   }, [activeShift]);
+
+  const updateEmployee = useCallback((emp: Employee) => {
+    setEmployees(prev => prev.map(e => e.id === emp.id ? emp : e));
+  }, []);
+
+  const addPayRun = useCallback((run: PayRun) => {
+    setPayRuns(prev => [run, ...prev]);
+  }, []);
+
+  const updatePayRunStatus = useCallback((id: string, status: PayRun["status"]) => {
+    setPayRuns(prev => prev.map(r => r.id === id ? { ...r, status, approvedAt: status === "approved" || status === "paid" ? new Date() : r.approvedAt } : r));
+  }, []);
+
+  const addPayStubs = useCallback((stubs: PayStub[]) => {
+    setPayStubs(prev => [...stubs, ...prev]);
+  }, []);
 
   return (
     <AppContext.Provider value={{
@@ -128,6 +133,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       clockIn, clockOut,
       startSleep, endSleep, logSleepInterruption, resumeSleep,
       addADLReport, addEMARRecord,
+      employees, updateEmployee,
+      payRuns, addPayRun, updatePayRunStatus,
+      payStubs, addPayStubs,
     }}>
       {children}
     </AppContext.Provider>
