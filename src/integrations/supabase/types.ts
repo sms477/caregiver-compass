@@ -367,6 +367,60 @@ export type Database = {
         }
         Relationships: []
       }
+      tax_filings: {
+        Row: {
+          agency: string
+          amount: number | null
+          confirmation_number: string | null
+          created_at: string
+          filed_at: string
+          filed_by: string
+          filing_data: Json
+          filing_type: string
+          form_type: string
+          id: string
+          notes: string | null
+          period_label: string | null
+          status: string
+          tax_year: number
+          updated_at: string
+        }
+        Insert: {
+          agency?: string
+          amount?: number | null
+          confirmation_number?: string | null
+          created_at?: string
+          filed_at?: string
+          filed_by: string
+          filing_data?: Json
+          filing_type?: string
+          form_type?: string
+          id?: string
+          notes?: string | null
+          period_label?: string | null
+          status?: string
+          tax_year: number
+          updated_at?: string
+        }
+        Update: {
+          agency?: string
+          amount?: number | null
+          confirmation_number?: string | null
+          created_at?: string
+          filed_at?: string
+          filed_by?: string
+          filing_data?: Json
+          filing_type?: string
+          form_type?: string
+          id?: string
+          notes?: string | null
+          period_label?: string | null
+          status?: string
+          tax_year?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tax_forms: {
         Row: {
           created_at: string
