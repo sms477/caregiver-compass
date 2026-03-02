@@ -21,7 +21,8 @@ const PayStubsView = () => {
       ``,
       `Earnings`,
       `Regular Hours,${li.regularHours},${formatCurrency(li.regularHours * li.hourlyRate)}`,
-      `Overtime Hours,${li.overtimeHours},${formatCurrency(li.overtimeHours * li.hourlyRate * 1.5)}`,
+      `Overtime Hours (1.5×),${li.overtimeHours},${formatCurrency(li.overtimeHours * li.hourlyRate * 1.5)}`,
+      `Double-Time Hours (2×),${li.doubleTimeHours},${formatCurrency(li.doubleTimeHours * li.hourlyRate * 2)}`,
       `Meal Penalties,${li.mealPenaltyHours},${formatCurrency(li.mealPenaltyHours * li.hourlyRate)}`,
       `Sleep Deductions,-${li.sleepDeductionHours},-${formatCurrency(li.sleepDeductionHours * li.hourlyRate)}`,
       `Gross Pay,,${formatCurrency(li.grossPay)}`,
@@ -79,6 +80,9 @@ const PayStubsView = () => {
                 <Row label="Regular Hours" detail={`${li.regularHours} hrs × ${formatCurrency(li.hourlyRate)}`} amount={formatCurrency(li.regularHours * li.hourlyRate)} />
                 {li.overtimeHours > 0 && (
                   <Row label="Overtime (1.5×)" detail={`${li.overtimeHours} hrs × ${formatCurrency(li.hourlyRate * 1.5)}`} amount={formatCurrency(li.overtimeHours * li.hourlyRate * 1.5)} />
+                )}
+                {li.doubleTimeHours > 0 && (
+                  <Row label="Double-Time (2×)" detail={`${li.doubleTimeHours} hrs × ${formatCurrency(li.hourlyRate * 2)}`} amount={formatCurrency(li.doubleTimeHours * li.hourlyRate * 2)} />
                 )}
                 {li.mealPenaltyHours > 0 && (
                   <Row label="Meal Penalty Pay" detail={`${li.mealPenaltyHours} hr(s)`} amount={formatCurrency(li.mealPenaltyHours * li.hourlyRate)} color="destructive" />

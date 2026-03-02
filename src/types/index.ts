@@ -128,6 +128,7 @@ export interface PayrollLineItem {
   hourlyRate: number;
   regularHours: number;
   overtimeHours: number;
+  doubleTimeHours: number;
   shiftDifferentialPay: number;
   mealPenaltyHours: number;
   sleepDeductionHours: number;
