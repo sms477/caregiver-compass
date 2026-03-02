@@ -6,12 +6,18 @@ import { formatCurrency } from "@/lib/payroll";
 import { Shift } from "@/types";
 import {
   Download, FileText, Clock, Pill, ClipboardList, AlertTriangle,
-  ShieldCheck, BarChart3, Users, CalendarDays
+  ShieldCheck, BarChart3, Users, CalendarDays, TrendingUp
 } from "lucide-react";
+import {
+  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  RadialBarChart, RadialBar
+} from "recharts";
 
-type ReportTab = "schedule" | "payroll" | "medications" | "adl" | "incidents" | "compliance";
+type ReportTab = "analytics" | "schedule" | "payroll" | "medications" | "adl" | "incidents" | "compliance";
 
 const TABS: { key: ReportTab; label: string; icon: React.ElementType }[] = [
+  { key: "analytics", label: "Analytics", icon: TrendingUp },
   { key: "schedule", label: "Staff Schedule", icon: CalendarDays },
   { key: "payroll", label: "Payroll Summary", icon: BarChart3 },
   { key: "medications", label: "Medication Logs", icon: Pill },
@@ -34,14 +40,23 @@ function downloadCSV(filename: string, csv: string) {
   URL.revokeObjectURL(url);
 }
 
+// Chart color palette using CSS custom properties
+const CHART_COLORS = [
+  "hsl(var(--primary))",
+  "hsl(var(--chart-2, 220 70% 50%))",
+  "hsl(var(--chart-3, 340 75% 55%))",
+  "hsl(var(--chart-4, 160 60% 45%))",
+  "hsl(var(--chart-5, 30 80% 55%))",
+];
+
 const ReportsCenter = () => {
-  const [tab, setTab] = useState<ReportTab>("schedule");
+  const [tab, setTab] = useState<ReportTab>("analytics");
 
   return (
     <div className="space-y-4 animate-slide-up">
       <div>
-        <h2 className="text-xl font-display font-bold text-foreground">Reports Center</h2>
-        <p className="text-sm text-muted-foreground mt-1">Generate and export facility reports.</p>
+        <h2 className="text-xl font-display font-bold text-foreground">Reports & Analytics</h2>
+        <p className="text-sm text-muted-foreground mt-1">Dashboards, charts, and exportable facility reports.</p>
       </div>
 
       {/* Tab bar */}
@@ -65,6 +80,7 @@ const ReportsCenter = () => {
         })}
       </div>
 
+      {tab === "analytics" && <AnalyticsDashboard />}
       {tab === "schedule" && <ScheduleReport />}
       {tab === "payroll" && <PayrollSummaryReport />}
       {tab === "medications" && <MedicationReport />}
@@ -74,6 +90,314 @@ const ReportsCenter = () => {
     </div>
   );
 };
+
+/* =========================================================
+   0. Analytics Dashboard (Charts)
+   ========================================================= */
+function AnalyticsDashboard() {
+  const { shifts, payRuns, employees } = useApp();
+  const { incidents } = useIncidents();
+  const { residents } = useResidents();
+
+  const completedShifts = useMemo(() => shifts.filter(s => s.clockOut), [shifts]);
+
+  // --- 1. Payroll Cost by Pay Period ---
+  const payrollByPeriod = useMemo(() => {
+    return payRuns.map(r => ({
+      period: r.payPeriod.label,
+      gross: Math.round(r.totalGrossPay),
+      net: Math.round(r.totalNetPay),
+      taxes: Math.round(r.totalTaxes),
+    })).reverse(); // chronological
+  }, [payRuns]);
+
+  // --- 2. Overtime Trends (weekly buckets) ---
+  const overtimeTrends = useMemo(() => {
+    const weekMap = new Map<string, { regular: number; ot: number; dt: number }>();
+    completedShifts.forEach(s => {
+      if (!s.clockOut) return;
+      const d = new Date(s.clockIn);
+      const weekStart = new Date(d);
+      weekStart.setDate(d.getDate() - d.getDay());
+      const key = weekStart.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      const hrs = (new Date(s.clockOut).getTime() - d.getTime()) / 3600000;
+      const entry = weekMap.get(key) || { regular: 0, ot: 0, dt: 0 };
+      if (hrs > 12) {
+        entry.regular += 8; entry.ot += 4; entry.dt += hrs - 12;
+      } else if (hrs > 8) {
+        entry.regular += 8; entry.ot += hrs - 8;
+      } else {
+        entry.regular += hrs;
+      }
+      weekMap.set(key, entry);
+    });
+    return Array.from(weekMap.entries()).map(([week, data]) => ({
+      week,
+      regular: Math.round(data.regular * 10) / 10,
+      overtime: Math.round(data.ot * 10) / 10,
+      doubletime: Math.round(data.dt * 10) / 10,
+    })).slice(-8); // last 8 weeks
+  }, [completedShifts]);
+
+  // --- 3. Incident Frequency (by type) ---
+  const incidentByType = useMemo(() => {
+    const map = new Map<string, number>();
+    incidents.forEach(i => {
+      const type = i.incident_type || "other";
+      map.set(type, (map.get(type) || 0) + 1);
+    });
+    return Array.from(map.entries()).map(([type, count]) => ({
+      name: type.charAt(0).toUpperCase() + type.slice(1),
+      value: count,
+    }));
+  }, [incidents]);
+
+  // Monthly incident trend
+  const incidentMonthly = useMemo(() => {
+    const map = new Map<string, number>();
+    incidents.forEach(i => {
+      const d = new Date(i.occurred_at);
+      const key = d.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+      map.set(key, (map.get(key) || 0) + 1);
+    });
+    return Array.from(map.entries()).map(([month, count]) => ({ month, count })).slice(-6);
+  }, [incidents]);
+
+  // --- 4. Medication Administration Consistency ---
+  const medConsistency = useMemo(() => {
+    const dayMap = new Map<string, number>();
+    completedShifts.forEach(s => {
+      const day = new Date(s.clockIn).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      dayMap.set(day, (dayMap.get(day) || 0) + s.emarRecords.length);
+    });
+    return Array.from(dayMap.entries()).map(([day, count]) => ({ day, meds: count })).slice(-14);
+  }, [completedShifts]);
+
+  // --- 5. Staff Compliance Status ---
+  const staffCompliance = useMemo(() => {
+    const empMap = new Map<string, { name: string; total: number; documented: number; breaksTaken: number }>();
+    completedShifts.forEach(s => {
+      const e = empMap.get(s.caregiverId) || { name: s.caregiverName, total: 0, documented: 0, breaksTaken: 0 };
+      e.total++;
+      if (s.adlReports.length > 0 || s.emarRecords.length > 0) e.documented++;
+      if (s.mealBreakTaken === true) e.breaksTaken++;
+      empMap.set(s.caregiverId, e);
+    });
+    return Array.from(empMap.entries()).map(([id, e]) => ({
+      name: e.name,
+      docRate: e.total > 0 ? Math.round((e.documented / e.total) * 100) : 0,
+      breakRate: e.total > 0 ? Math.round((e.breaksTaken / e.total) * 100) : 0,
+      shifts: e.total,
+    }));
+  }, [completedShifts]);
+
+  const hasData = completedShifts.length > 0 || payRuns.length > 0 || incidents.length > 0;
+
+  if (!hasData) {
+    return (
+      <div className="glass-card rounded-xl p-12 text-center">
+        <TrendingUp className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+        <p className="font-medium text-foreground">No analytics data yet</p>
+        <p className="text-sm text-muted-foreground mt-1">Charts will populate once shifts are logged and payroll is run.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Row 1: Payroll Cost & Overtime */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Payroll Cost by Pay Period */}
+        <ChartCard title="Payroll Cost by Pay Period" icon={BarChart3}>
+          {payrollByPeriod.length === 0 ? (
+            <ChartEmpty label="Run payroll to see cost trends" />
+          ) : (
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={payrollByPeriod} margin={{ top: 5, right: 20, bottom: 5, left: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                <XAxis dataKey="period" tick={{ fontSize: 11 }} className="fill-muted-foreground" />
+                <YAxis tick={{ fontSize: 11 }} className="fill-muted-foreground" tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
+                <Tooltip
+                  contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+                  formatter={(value: number) => formatCurrency(value)}
+                />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Bar dataKey="gross" name="Gross Pay" fill={CHART_COLORS[0]} radius={[4, 4, 0, 0]} />
+                <Bar dataKey="net" name="Net Pay" fill={CHART_COLORS[3]} radius={[4, 4, 0, 0]} />
+                <Bar dataKey="taxes" name="Taxes" fill={CHART_COLORS[2]} radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </ChartCard>
+
+        {/* Overtime Trends */}
+        <ChartCard title="Overtime Trends (Weekly)" icon={Clock}>
+          {overtimeTrends.length === 0 ? (
+            <ChartEmpty label="Log shifts to see overtime trends" />
+          ) : (
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={overtimeTrends} margin={{ top: 5, right: 20, bottom: 5, left: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                <XAxis dataKey="week" tick={{ fontSize: 11 }} className="fill-muted-foreground" />
+                <YAxis tick={{ fontSize: 11 }} className="fill-muted-foreground" label={{ value: "Hours", angle: -90, position: "insideLeft", style: { fontSize: 11 } }} />
+                <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Bar dataKey="regular" name="Regular" stackId="a" fill={CHART_COLORS[3]} />
+                <Bar dataKey="overtime" name="Overtime (1.5x)" stackId="a" fill={CHART_COLORS[4]} />
+                <Bar dataKey="doubletime" name="Double Time (2x)" stackId="a" fill={CHART_COLORS[2]} radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </ChartCard>
+      </div>
+
+      {/* Row 2: Incidents & Medication */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Incident Frequency */}
+        <ChartCard title="Incident Frequency" icon={AlertTriangle}>
+          {incidents.length === 0 ? (
+            <ChartEmpty label="No incidents reported" />
+          ) : (
+            <div className="flex items-center gap-4">
+              <ResponsiveContainer width="50%" height={220}>
+                <PieChart>
+                  <Pie data={incidentByType} cx="50%" cy="50%" innerRadius={45} outerRadius={75} paddingAngle={3} dataKey="value">
+                    {incidentByType.map((_, i) => (
+                      <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="flex-1 space-y-2">
+                {incidentByType.map((item, i) => (
+                  <div key={item.name} className="flex items-center gap-2 text-sm">
+                    <div className="w-3 h-3 rounded-full shrink-0" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />
+                    <span className="text-foreground font-medium">{item.name}</span>
+                    <span className="text-muted-foreground ml-auto">{item.value}</span>
+                  </div>
+                ))}
+                <div className="pt-2 border-t border-border text-xs text-muted-foreground">
+                  Total: {incidents.length} incident{incidents.length !== 1 ? "s" : ""}
+                </div>
+              </div>
+            </div>
+          )}
+          {/* Monthly trend line */}
+          {incidentMonthly.length > 1 && (
+            <div className="mt-4 pt-4 border-t border-border">
+              <p className="text-xs text-muted-foreground font-medium mb-2">Monthly Trend</p>
+              <ResponsiveContainer width="100%" height={100}>
+                <LineChart data={incidentMonthly} margin={{ top: 5, right: 10, bottom: 5, left: 10 }}>
+                  <XAxis dataKey="month" tick={{ fontSize: 10 }} className="fill-muted-foreground" />
+                  <YAxis tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} />
+                  <Line type="monotone" dataKey="count" stroke={CHART_COLORS[2]} strokeWidth={2} dot={{ r: 3 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </ChartCard>
+
+        {/* Medication Administration Consistency */}
+        <ChartCard title="Medication Administration (Daily)" icon={Pill}>
+          {medConsistency.length === 0 ? (
+            <ChartEmpty label="Log eMAR records to see trends" />
+          ) : (
+            <ResponsiveContainer width="100%" height={260}>
+              <LineChart data={medConsistency} margin={{ top: 5, right: 20, bottom: 5, left: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                <XAxis dataKey="day" tick={{ fontSize: 11 }} className="fill-muted-foreground" />
+                <YAxis tick={{ fontSize: 11 }} className="fill-muted-foreground" allowDecimals={false} />
+                <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
+                <Line type="monotone" dataKey="meds" name="Medications Given" stroke={CHART_COLORS[0]} strokeWidth={2} dot={{ r: 3, fill: CHART_COLORS[0] }} />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
+        </ChartCard>
+      </div>
+
+      {/* Row 3: Staff Compliance Status */}
+      <ChartCard title="Staff Compliance Status" icon={ShieldCheck}>
+        {staffCompliance.length === 0 ? (
+          <ChartEmpty label="Log shifts to see compliance data" />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-muted/30">
+                  <th className="text-left p-3 font-medium text-muted-foreground">Employee</th>
+                  <th className="text-right p-3 font-medium text-muted-foreground">Shifts</th>
+                  <th className="text-left p-3 font-medium text-muted-foreground">Documentation Rate</th>
+                  <th className="text-left p-3 font-medium text-muted-foreground">Break Compliance</th>
+                </tr>
+              </thead>
+              <tbody>
+                {staffCompliance.map(e => (
+                  <tr key={e.name} className="border-t border-border">
+                    <td className="p-3 font-medium text-foreground">{e.name}</td>
+                    <td className="p-3 text-right text-muted-foreground">{e.shifts}</td>
+                    <td className="p-3">
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{
+                              width: `${e.docRate}%`,
+                              background: e.docRate >= 90 ? "hsl(var(--success))" : e.docRate >= 70 ? "hsl(var(--warning))" : "hsl(var(--destructive))",
+                            }}
+                          />
+                        </div>
+                        <span className={`text-xs font-semibold ${
+                          e.docRate >= 90 ? "text-success" : e.docRate >= 70 ? "text-warning" : "text-destructive"
+                        }`}>{e.docRate}%</span>
+                      </div>
+                    </td>
+                    <td className="p-3">
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{
+                              width: `${e.breakRate}%`,
+                              background: e.breakRate >= 90 ? "hsl(var(--success))" : e.breakRate >= 70 ? "hsl(var(--warning))" : "hsl(var(--destructive))",
+                            }}
+                          />
+                        </div>
+                        <span className={`text-xs font-semibold ${
+                          e.breakRate >= 90 ? "text-success" : e.breakRate >= 70 ? "text-warning" : "text-destructive"
+                        }`}>{e.breakRate}%</span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </ChartCard>
+    </div>
+  );
+}
+
+function ChartCard({ title, icon: Icon, children }: { title: string; icon: React.ElementType; children: React.ReactNode }) {
+  return (
+    <div className="glass-card rounded-xl overflow-hidden">
+      <div className="flex items-center gap-2 p-4 border-b border-border">
+        <Icon className="w-4 h-4 text-primary" />
+        <h3 className="font-semibold text-foreground text-sm">{title}</h3>
+      </div>
+      <div className="p-4">{children}</div>
+    </div>
+  );
+}
+
+function ChartEmpty({ label }: { label: string }) {
+  return (
+    <div className="flex items-center justify-center h-[200px] text-muted-foreground text-sm">
+      {label}
+    </div>
+  );
+}
 
 /* =========================================================
    1. Staff Schedule History
@@ -397,7 +721,6 @@ function ComplianceReport() {
       return (new Date(s.clockOut).getTime() - new Date(s.clockIn).getTime()) / 3600000 > 12;
     });
 
-    // Per-employee compliance
     const empMap = new Map<string, { name: string; total: number; missingDocs: number; missedBreaks: number }>();
     completed.forEach(s => {
       const e = empMap.get(s.caregiverId) || { name: s.caregiverName, total: 0, missingDocs: 0, missedBreaks: 0 };
@@ -441,7 +764,6 @@ function ComplianceReport() {
 
   return (
     <ReportShell title="Compliance Status Summary" count={stats.totalShifts} subtitle="shifts reviewed" onExport={exportCSV} icon={ShieldCheck}>
-      {/* Summary cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 p-4">
         <MiniCard label="Doc Compliance" value={`${complianceRate}%`} color={Number(complianceRate) >= 90 ? "text-success" : "text-warning"} />
         <MiniCard label="Missed Breaks" value={String(stats.missedMealBreaks)} color={stats.missedMealBreaks > 0 ? "text-destructive" : "text-success"} />
@@ -449,7 +771,6 @@ function ComplianceReport() {
         <MiniCard label="No GPS" value={String(stats.noLocation)} color={stats.noLocation > 0 ? "text-warning" : "text-success"} />
       </div>
 
-      {/* Per-employee breakdown */}
       {stats.byEmployee.length > 0 && (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
