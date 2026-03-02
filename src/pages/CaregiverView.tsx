@@ -4,15 +4,15 @@ import { MOCK_RESIDENTS } from "@/data/mockData";
 import { ADLReport } from "@/types";
 import {
   Clock, LogOut, Moon, Sun, AlertTriangle, Check, Pill,
-  ChevronLeft, ClipboardList, Activity, ArrowLeft
+  ChevronLeft, ClipboardList, Activity, ArrowLeft, History
 } from "lucide-react";
 import { toast } from "sonner";
 
-type Tab = "clock" | "adl" | "emar";
+type Tab = "clock" | "adl" | "emar" | "history";
 
 const CaregiverView = () => {
   const {
-    setRole, activeShift, clockIn, clockOut,
+    setRole, activeShift, shifts, clockIn, clockOut,
     startSleep, endSleep, logSleepInterruption, resumeSleep,
     addADLReport, addEMARRecord, currentCaregiverId,
   } = useApp();
@@ -123,34 +123,37 @@ const CaregiverView = () => {
       </header>
 
       {/* Tab Bar */}
-      {activeShift && (
-        <div className="flex border-b border-border bg-card">
-          {([
+      <div className="flex border-b border-border bg-card">
+        {([
+          ...(activeShift ? [
             { key: "clock" as Tab, icon: Clock, label: "Shift" },
             { key: "adl" as Tab, icon: ClipboardList, label: "ADLs" },
             { key: "emar" as Tab, icon: Pill, label: "eMAR" },
-          ]).map(({ key, icon: Icon, label }) => (
-            <button
-              key={key}
-              onClick={() => setTab(key)}
-              className={`flex-1 py-3 flex flex-col items-center gap-1 text-xs font-medium transition-colors ${
-                tab === key ? "text-primary border-b-2 border-primary" : "text-muted-foreground"
-              }`}
-            >
-              <Icon className="w-5 h-5" />
-              {label}
-            </button>
-          ))}
-        </div>
-      )}
+          ] : []),
+          { key: "history" as Tab, icon: History, label: "History" },
+        ]).map(({ key, icon: Icon, label }) => (
+          <button
+            key={key}
+            onClick={() => setTab(key)}
+            className={`flex-1 py-3 flex flex-col items-center gap-1 text-xs font-medium transition-colors ${
+              tab === key ? "text-primary border-b-2 border-primary" : "text-muted-foreground"
+            }`}
+          >
+            <Icon className="w-5 h-5" />
+            {label}
+          </button>
+        ))}
+      </div>
 
       {/* Content */}
       <main className="flex-1 p-4 space-y-4 max-w-lg mx-auto w-full">
-        {!activeShift ? (
+        {tab === "history" ? (
+          <HistoryView shifts={shifts} />
+        ) : !activeShift ? (
           <ClockInView
             showOptions={showClockInOptions}
             setShowOptions={setShowClockInOptions}
-            onClockIn={clockIn}
+            onClockIn={(is24) => { clockIn(is24); setTab("clock"); }}
           />
         ) : tab === "clock" ? (
           <ShiftView
@@ -526,6 +529,137 @@ function EMARView({ onAdminister, records, caregiverId }: {
           })}
         </div>
       ))}
+    </div>
+  );
+}
+
+function HistoryView({ shifts }: { shifts: import("@/types").Shift[] }) {
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const formatDate = (d: Date) =>
+    new Date(d).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+
+  const formatTime = (d: Date) =>
+    new Date(d).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+
+  const formatDuration = (start: Date, end: Date) => {
+    const ms = new Date(end).getTime() - new Date(start).getTime();
+    const h = Math.floor(ms / 3600000);
+    const m = Math.floor((ms % 3600000) / 60000);
+    return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  };
+
+  if (shifts.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[40vh] space-y-3 animate-slide-up">
+        <History className="w-10 h-10 text-muted-foreground" />
+        <p className="text-muted-foreground text-sm">No completed shifts yet.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3 animate-slide-up">
+      <h2 className="text-xl font-display font-bold text-foreground">Shift History</h2>
+      <p className="text-sm text-muted-foreground">Tap a shift to see details.</p>
+
+      {shifts.map((shift) => {
+        const isExpanded = expandedId === shift.id;
+        const duration = shift.clockOut ? formatDuration(shift.clockIn, shift.clockOut) : "—";
+        const adlCount = shift.adlReports?.length || 0;
+        const emarCount = shift.emarRecords?.length || 0;
+
+        return (
+          <button
+            key={shift.id}
+            onClick={() => setExpandedId(isExpanded ? null : shift.id)}
+            className="w-full text-left glass-card rounded-xl p-4 space-y-2 active:scale-[0.98] transition-transform"
+          >
+            {/* Summary row */}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-semibold text-foreground">{formatDate(shift.clockIn)}</p>
+                <p className="text-xs text-muted-foreground">
+                  {formatTime(shift.clockIn)} – {shift.clockOut ? formatTime(shift.clockOut) : "—"}
+                  {shift.is24Hour && <span className="ml-1 text-primary">(24hr)</span>}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-bold text-foreground">{duration}</p>
+                <div className="flex gap-2 text-xs text-muted-foreground">
+                  {adlCount > 0 && <span className="text-success">{adlCount} ADL</span>}
+                  {emarCount > 0 && <span className="text-primary">{emarCount} Med</span>}
+                </div>
+              </div>
+            </div>
+
+            {/* Meal break badge */}
+            <div className="flex gap-2 flex-wrap">
+              {shift.mealBreakTaken === true && (
+                <span className="text-xs bg-success/10 text-success px-2 py-0.5 rounded-full">✓ Meal break taken</span>
+              )}
+              {shift.mealBreakTaken === false && (
+                <span className="text-xs bg-warning/10 text-warning px-2 py-0.5 rounded-full">⚠ No meal break: {shift.mealBreakReason}</span>
+              )}
+              {shift.sleepInterruptions?.length > 0 && (
+                <span className="text-xs bg-destructive/10 text-destructive px-2 py-0.5 rounded-full">
+                  {shift.sleepInterruptions.length} sleep interruption(s)
+                </span>
+              )}
+            </div>
+
+            {/* Expanded details */}
+            {isExpanded && (
+              <div className="pt-2 border-t border-border space-y-3" onClick={(e) => e.stopPropagation()}>
+                {/* ADL Reports */}
+                {adlCount > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">ADL Reports</p>
+                    {shift.adlReports.map((adl, i) => {
+                      const resName = MOCK_RESIDENTS.find(r => r.id === adl.residentId)?.name || adl.residentId;
+                      const tasks = (["bathing", "dressing", "eating", "mobility", "toileting"] as const)
+                        .filter(k => adl[k]);
+                      return (
+                        <div key={i} className="bg-muted/50 rounded-lg p-2 mb-1">
+                          <p className="text-sm font-medium text-foreground">{resName}</p>
+                          {tasks.length > 0 && (
+                            <p className="text-xs text-muted-foreground">{tasks.join(", ")}</p>
+                          )}
+                          {adl.notes && <p className="text-xs text-muted-foreground italic mt-0.5">"{adl.notes}"</p>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* eMAR Records */}
+                {emarCount > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Medications Given</p>
+                    {shift.emarRecords.map((rec, i) => {
+                      const resident = MOCK_RESIDENTS.find(r => r.id === rec.residentId);
+                      const med = resident?.medications.find(m => m.id === rec.medicationId);
+                      return (
+                        <div key={i} className="bg-muted/50 rounded-lg p-2 mb-1 flex justify-between items-center">
+                          <div>
+                            <p className="text-sm font-medium text-foreground">{med?.name || rec.medicationId} — {med?.dosage || ""}</p>
+                            <p className="text-xs text-muted-foreground">{resident?.name || rec.residentId}</p>
+                          </div>
+                          <p className="text-xs text-muted-foreground">{formatTime(rec.administeredAt)}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {adlCount === 0 && emarCount === 0 && (
+                  <p className="text-xs text-muted-foreground italic">No ADL reports or medications logged for this shift.</p>
+                )}
+              </div>
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 }
