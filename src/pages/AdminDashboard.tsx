@@ -1,10 +1,16 @@
 import { useMemo, useState } from "react";
 import { useApp } from "@/contexts/AppContext";
 import { Shift } from "@/types";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   ArrowLeft, AlertTriangle, Clock, DollarSign, Download,
   FileText, Users, TrendingUp, Shield, Play, Receipt,
-  LayoutDashboard, UserCircle, ChevronRight, Building2, FileCheck
+  LayoutDashboard, UserCircle, ChevronRight, Building2, FileCheck,
+  CalendarIcon, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon
 } from "lucide-react";
 import { formatCurrency } from "@/lib/payroll";
 import { buildPayRun } from "@/lib/payroll";
@@ -351,10 +357,24 @@ function StatCard({ icon: Icon, label, value, accent }: {
 
 function ShiftLogView({ shifts }: { shifts: Shift[] }) {
   const [groupBy, setGroupBy] = useState<"day" | "employee">("day");
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+
+  const shiftDates = useMemo(() => {
+    const dates = new Set<string>();
+    shifts.forEach(s => dates.add(new Date(s.clockIn).toDateString()));
+    return dates;
+  }, [shifts]);
+
+  const filteredShifts = useMemo(() => {
+    if (groupBy === "day" && selectedDate) {
+      return shifts.filter(s => new Date(s.clockIn).toDateString() === selectedDate.toDateString());
+    }
+    return shifts;
+  }, [shifts, groupBy, selectedDate]);
 
   const grouped = useMemo(() => {
     const map = new Map<string, Shift[]>();
-    const sorted = [...shifts].sort((a, b) => new Date(b.clockIn).getTime() - new Date(a.clockIn).getTime());
+    const sorted = [...filteredShifts].sort((a, b) => new Date(b.clockIn).getTime() - new Date(a.clockIn).getTime());
     sorted.forEach(s => {
       const key = groupBy === "day"
         ? new Date(s.clockIn).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })
@@ -364,7 +384,15 @@ function ShiftLogView({ shifts }: { shifts: Shift[] }) {
       map.set(key, arr);
     });
     return map;
-  }, [shifts, groupBy]);
+  }, [filteredShifts, groupBy]);
+
+  const sortedUniqueDates = useMemo(() => {
+    return [...shiftDates].map(d => new Date(d)).sort((a, b) => b.getTime() - a.getTime());
+  }, [shiftDates]);
+
+  const currentIndex = selectedDate ? sortedUniqueDates.findIndex(d => d.toDateString() === selectedDate.toDateString()) : -1;
+  const canGoPrev = currentIndex < sortedUniqueDates.length - 1;
+  const canGoNext = currentIndex > 0;
 
   return (
     <div className="space-y-4 animate-slide-up">
@@ -375,7 +403,7 @@ function ShiftLogView({ shifts }: { shifts: Shift[] }) {
         </div>
         <div className="flex gap-1 bg-muted/30 rounded-lg p-1">
           <button
-            onClick={() => setGroupBy("day")}
+            onClick={() => { setGroupBy("day"); setSelectedDate(undefined); }}
             className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
               groupBy === "day" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
@@ -393,8 +421,50 @@ function ShiftLogView({ shifts }: { shifts: Shift[] }) {
         </div>
       </div>
 
+      {groupBy === "day" && shifts.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          {selectedDate && (
+            <>
+              <button onClick={() => canGoPrev && setSelectedDate(sortedUniqueDates[currentIndex + 1])} disabled={!canGoPrev} className="p-1.5 rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 transition-colors">
+                <ChevronLeftIcon className="w-4 h-4" />
+              </button>
+              <button onClick={() => canGoNext && setSelectedDate(sortedUniqueDates[currentIndex - 1])} disabled={!canGoNext} className="p-1.5 rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 transition-colors">
+                <ChevronRightIcon className="w-4 h-4" />
+              </button>
+            </>
+          )}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className={cn("justify-start text-left font-normal", !selectedDate && "text-muted-foreground")}>
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {selectedDate ? format(selectedDate, "PPP") : "All dates — pick a day to filter"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={setSelectedDate}
+                modifiers={{ hasShifts: sortedUniqueDates }}
+                modifiersClassNames={{ hasShifts: "font-bold text-primary" }}
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+          {selectedDate && (
+            <button onClick={() => setSelectedDate(undefined)} className="text-xs text-muted-foreground hover:text-foreground underline">Show all</button>
+          )}
+        </div>
+      )}
+
       {shifts.length === 0 ? (
         <p className="text-center text-muted-foreground py-8">No completed shifts yet.</p>
+      ) : filteredShifts.length === 0 ? (
+        <div className="glass-card rounded-xl p-8 text-center">
+          <Clock className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+          <p className="font-medium text-foreground">No shifts on this date</p>
+          <p className="text-sm text-muted-foreground mt-1">Select a different date or click "Show all".</p>
+        </div>
       ) : (
         <div className="space-y-4">
           {[...grouped.entries()].map(([groupLabel, groupShifts]) => (
