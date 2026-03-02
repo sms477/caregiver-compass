@@ -22,10 +22,10 @@ interface AppState {
   refreshEmployees: () => Promise<void>;
   updateEmployee: (emp: Employee) => void;
   payRuns: PayRun[];
-  addPayRun: (run: PayRun) => void;
+  addPayRun: (run: PayRun) => Promise<PayRun | undefined>;
   updatePayRunStatus: (id: string, status: PayRun["status"]) => void;
   payStubs: PayStub[];
-  addPayStubs: (stubs: PayStub[]) => void;
+  addPayStubs: (stubs: PayStub[]) => Promise<void>;
 }
 
 const AppContext = createContext<AppState | null>(null);
@@ -112,6 +112,58 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
+  // Load pay runs from DB
+  const refreshPayRuns = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("pay_runs")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (data && !error) {
+      const mapped: PayRun[] = data.map((r: any) => ({
+        id: r.id,
+        payPeriod: {
+          ...r.pay_period,
+          startDate: new Date(r.pay_period.startDate),
+          endDate: new Date(r.pay_period.endDate),
+          payDate: new Date(r.pay_period.payDate),
+        },
+        status: r.status,
+        lineItems: r.line_items || [],
+        totalGrossPay: Number(r.total_gross_pay),
+        totalTaxes: Number(r.total_taxes),
+        totalNetPay: Number(r.total_net_pay),
+        approvedAt: r.approved_at ? new Date(r.approved_at) : null,
+        createdAt: new Date(r.created_at),
+      }));
+      setPayRuns(mapped);
+    }
+  }, []);
+
+  // Load pay stubs from DB
+  const refreshPayStubs = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("pay_stubs")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (data && !error) {
+      const mapped: PayStub[] = data.map((s: any) => ({
+        id: s.id,
+        payRunId: s.pay_run_id,
+        employeeId: s.employee_id,
+        employeeName: s.employee_name,
+        payPeriod: {
+          ...s.pay_period,
+          startDate: new Date(s.pay_period.startDate),
+          endDate: new Date(s.pay_period.endDate),
+          payDate: new Date(s.pay_period.payDate),
+        },
+        lineItem: s.line_item,
+        paidAt: new Date(s.paid_at),
+      }));
+      setPayStubs(mapped);
+    }
+  }, []);
+
   // Load shifts from DB
   const refreshShifts = useCallback(async () => {
     const { data, error } = await supabase
@@ -131,22 +183,23 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     refreshEmployees();
 
-    // Listen for auth changes to always have the correct user ID
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user?.id) {
         setCurrentCaregiverId(session.user.id);
       }
     });
 
-    // Also check existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user?.id) {
         setCurrentCaregiverId(session.user.id);
+        // Load pay data once authenticated
+        refreshPayRuns();
+        refreshPayStubs();
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [refreshEmployees]);
+  }, [refreshEmployees, refreshPayRuns, refreshPayStubs]);
 
   // Load shifts once we know the caregiver ID
   useEffect(() => {
@@ -249,16 +302,104 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     setEmployees(prev => prev.map(e => e.id === emp.id ? emp : e));
   }, []);
 
-  const addPayRun = useCallback((run: PayRun) => {
+  const addPayRun = useCallback(async (run: PayRun) => {
+    const { data: session } = await supabase.auth.getSession();
+    const userId = session?.session?.user?.id;
+    if (!userId) return;
+
+    const { data, error } = await supabase
+      .from("pay_runs")
+      .insert({
+        pay_period: JSON.parse(JSON.stringify(run.payPeriod)) as Json,
+        status: run.status,
+        line_items: JSON.parse(JSON.stringify(run.lineItems)) as Json,
+        total_gross_pay: run.totalGrossPay,
+        total_taxes: run.totalTaxes,
+        total_net_pay: run.totalNetPay,
+        created_by: userId,
+      } as any)
+      .select()
+      .single();
+
+    if (data && !error) {
+      const saved = { ...run, id: data.id };
+      setPayRuns(prev => [saved, ...prev]);
+
+      // Log audit entry
+      await supabase.from("payroll_audit_log").insert({
+        pay_run_id: data.id,
+        action: "pay_run_created",
+        performed_by: userId,
+        details: { status: run.status, totalGrossPay: run.totalGrossPay, employeeCount: run.lineItems.length } as unknown as Json,
+      } as any);
+
+      return saved;
+    }
+    // Fallback to local state
     setPayRuns(prev => [run, ...prev]);
+    return run;
   }, []);
 
-  const updatePayRunStatus = useCallback((id: string, status: PayRun["status"]) => {
-    setPayRuns(prev => prev.map(r => r.id === id ? { ...r, status, approvedAt: status === "approved" || status === "paid" ? new Date() : r.approvedAt } : r));
+  const updatePayRunStatus = useCallback(async (id: string, status: PayRun["status"]) => {
+    const { data: session } = await supabase.auth.getSession();
+    const userId = session?.session?.user?.id;
+
+    const approvedAt = (status === "approved" || status === "paid") ? new Date().toISOString() : null;
+
+    await supabase
+      .from("pay_runs")
+      .update({
+        status,
+        approved_at: approvedAt,
+        approved_by: (status === "approved" || status === "paid") ? userId : null,
+      } as any)
+      .eq("id", id);
+
+    setPayRuns(prev => prev.map(r =>
+      r.id === id ? { ...r, status, approvedAt: approvedAt ? new Date(approvedAt) : r.approvedAt } : r
+    ));
+
+    // Audit log
+    if (userId) {
+      await supabase.from("payroll_audit_log").insert({
+        pay_run_id: id,
+        action: `status_changed_to_${status}`,
+        performed_by: userId,
+        details: { newStatus: status } as unknown as Json,
+      } as any);
+    }
   }, []);
 
-  const addPayStubs = useCallback((stubs: PayStub[]) => {
-    setPayStubs(prev => [...stubs, ...prev]);
+  const addPayStubs = useCallback(async (stubs: PayStub[]) => {
+    // Persist to DB
+    const rows = stubs.map(s => ({
+      pay_run_id: s.payRunId,
+      employee_id: s.employeeId,
+      employee_name: s.employeeName,
+      pay_period: JSON.parse(JSON.stringify(s.payPeriod)) as Json,
+      line_item: JSON.parse(JSON.stringify(s.lineItem)) as Json,
+      paid_at: s.paidAt instanceof Date ? s.paidAt.toISOString() : s.paidAt,
+    }));
+
+    const { data, error } = await supabase
+      .from("pay_stubs")
+      .insert(rows as any)
+      .select();
+
+    if (data && !error) {
+      const saved: PayStub[] = data.map((d: any) => ({
+        id: d.id,
+        payRunId: d.pay_run_id,
+        employeeId: d.employee_id,
+        employeeName: d.employee_name,
+        payPeriod: d.pay_period,
+        lineItem: d.line_item,
+        paidAt: new Date(d.paid_at),
+      }));
+      setPayStubs(prev => [...saved, ...prev]);
+    } else {
+      setPayStubs(prev => [...stubs, ...prev]);
+    }
   }, []);
 
   return (
