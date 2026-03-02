@@ -19,7 +19,7 @@ import { MOCK_PAY_PERIODS } from "@/data/mockData";
 import PayRunWizard from "@/components/admin/PayRunWizard";
 import EmployeeProfiles from "@/components/admin/EmployeeProfiles";
 import PayStubsView from "@/components/admin/PayStubsView";
-import PayrollReports from "@/components/admin/PayrollReports";
+import ReportsCenter from "@/components/admin/ReportsCenter";
 import PaymentsView from "@/components/admin/PaymentsView";
 import TaxFormsView from "@/components/admin/TaxFormsView";
 import ResidentsManager from "@/components/admin/ResidentsManager";
@@ -192,7 +192,7 @@ const AdminDashboard = () => {
           {tab === "pay-stubs" && <PayStubsView />}
           {tab === "payments" && <PaymentsView />}
           {tab === "tax-forms" && <TaxFormsView />}
-          {tab === "reports" && <PayrollReports />}
+          {tab === "reports" && <ReportsCenter />}
 
           {tab === "shifts" && (
             <ShiftLogView shifts={completedShifts} />
