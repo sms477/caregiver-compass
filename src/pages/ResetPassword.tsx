@@ -9,19 +9,27 @@ const ResetPassword = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [sessionReady, setSessionReady] = useState(false);
+  const [displayName, setDisplayName] = useState("");
   const { toast } = useToast();
 
   useEffect(() => {
     // Listen for the SIGNED_IN or PASSWORD_RECOVERY event from the recovery link
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") {
         setSessionReady(true);
+        if (session?.user?.user_metadata?.display_name) {
+          setDisplayName(session.user.user_metadata.display_name);
+        }
       }
     });
 
-    // Also check if there's already a session (user clicked link and was auto-signed in)
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setSessionReady(true);
+      if (session) {
+        setSessionReady(true);
+        if (session.user?.user_metadata?.display_name) {
+          setDisplayName(session.user.user_metadata.display_name);
+        }
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -74,7 +82,9 @@ const ResetPassword = () => {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary text-primary-foreground mb-4">
             <Shield className="w-8 h-8" />
           </div>
-          <h1 className="text-3xl font-display font-bold text-foreground">Welcome to CareGuard</h1>
+          <h1 className="text-3xl font-display font-bold text-foreground">
+            {displayName ? `Welcome, ${displayName}!` : "Welcome to CareGuard"}
+          </h1>
           <p className="text-muted-foreground text-sm">
             Set your password to get started.
           </p>
