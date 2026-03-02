@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useApp } from "@/contexts/AppContext";
 import { MOCK_RESIDENTS } from "@/data/mockData";
 import { ADLReport } from "@/types";
@@ -6,6 +6,7 @@ import {
   Clock, LogOut, Moon, Sun, AlertTriangle, Check, Pill,
   ChevronLeft, ClipboardList, Activity, ArrowLeft
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 type Tab = "clock" | "adl" | "emar";
 
@@ -24,14 +25,34 @@ const CaregiverView = () => {
   const [showWakePrompt, setShowWakePrompt] = useState(false);
 
   const { employees } = useApp();
+  const { toast } = useToast();
   const caregiverName = employees.find(c => c.id === currentCaregiverId)?.name || "";
+  const clockInTimeRef = useRef<Date | null>(null);
 
   const isSleeping = activeShift?.sleepStart && !activeShift?.sleepEnd;
   const hasActiveInterruption = activeShift?.sleepInterruptions.some(i => !i.resumeTime);
 
+  // Track clock-in time for the confirmation message
+  useEffect(() => {
+    if (activeShift) {
+      clockInTimeRef.current = new Date(activeShift.clockIn);
+    }
+  }, [activeShift]);
+
   const handleClockOutAttempt = () => setShowMealPrompt(true);
 
+  const formatDuration = (ms: number) => {
+    const totalSeconds = Math.floor(ms / 1000);
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    if (h > 0) return `${h}h ${m}m`;
+    if (m > 0) return `${m}m ${s}s`;
+    return `${s}s`;
+  };
+
   const handleMealResponse = (taken: boolean) => {
+    const clockInTime = clockInTimeRef.current;
     if (taken) {
       clockOut(true, null);
       setShowMealPrompt(false);
@@ -39,6 +60,14 @@ const CaregiverView = () => {
       clockOut(false, mealReason);
       setShowMealPrompt(false);
       setMealReason("");
+    }
+    // Show confirmation after clock-out
+    if (taken || mealReason) {
+      const duration = clockInTime ? formatDuration(Date.now() - clockInTime.getTime()) : "unknown";
+      toast({
+        title: "✓ Shift logged!",
+        description: `${caregiverName || "Your"} shift of ${duration} has been recorded.`,
+      });
     }
   };
 
