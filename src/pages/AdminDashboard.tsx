@@ -59,6 +59,10 @@ const AdminDashboard = () => {
       if (s.mealBreakTaken === false) {
         alerts.push({ type: "danger", message: `${s.caregiverName} missed meal break — 1hr penalty added` });
       }
+      if (s.adlReports.length === 0 && s.emarRecords.length === 0) {
+        const date = new Date(s.clockIn).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+        alerts.push({ type: "warning", message: `${s.caregiverName} (${date}) — no ADL or eMAR documentation` });
+      }
       if (s.is24Hour && s.sleepStart && s.sleepEnd) {
         const sleepMs = new Date(s.sleepEnd).getTime() - new Date(s.sleepStart).getTime();
         const interruptMs = s.sleepInterruptions.reduce((sum, i) => {
@@ -496,18 +500,23 @@ function ShiftLogView({ shifts }: { shifts: Shift[] }) {
                           {new Date(s.clockIn).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} → {s.clockOut ? new Date(s.clockOut).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"}
                         </p>
                       </div>
-                      <div className="flex gap-1.5">
+                      <div className="flex gap-1.5 flex-wrap">
                         {s.is24Hour && <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">24hr</span>}
                         {s.mealBreakTaken === false && <span className="text-xs bg-destructive/10 text-destructive px-2 py-0.5 rounded-full font-medium">No break</span>}
                         {s.mealBreakTaken === true && <span className="text-xs bg-success/10 text-success px-2 py-0.5 rounded-full font-medium">Break ✓</span>}
+                        {s.adlReports.length === 0 && s.emarRecords.length === 0 && (
+                          <span className="text-xs bg-warning/10 text-warning px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
+                            <AlertTriangle className="w-3 h-3" /> No docs
+                          </span>
+                        )}
                       </div>
                     </div>
-                    {(s.emarRecords.length > 0 || s.adlReports.length > 0) && (
-                      <div className="flex gap-3 text-xs text-muted-foreground">
-                        {s.emarRecords.length > 0 && <span>{s.emarRecords.length} med(s)</span>}
-                        {s.adlReports.length > 0 && <span>{s.adlReports.length} ADL(s)</span>}
-                      </div>
-                    )}
+                    <div className="flex gap-3 text-xs text-muted-foreground">
+                      {s.emarRecords.length > 0 && <span>{s.emarRecords.length} med(s)</span>}
+                      {s.adlReports.length > 0 && <span>{s.adlReports.length} ADL(s)</span>}
+                      {s.emarRecords.length === 0 && <span className="text-warning">0 meds</span>}
+                      {s.adlReports.length === 0 && <span className="text-warning">0 ADLs</span>}
+                    </div>
                   </div>
                 ))}
               </div>

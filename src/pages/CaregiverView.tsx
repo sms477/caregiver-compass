@@ -670,12 +670,13 @@ function HistoryView({ shifts, residents }: { shifts: import("@/types").Shift[];
         const duration = shift.clockOut ? formatDuration(shift.clockIn, shift.clockOut) : "—";
         const adlCount = shift.adlReports?.length || 0;
         const emarCount = shift.emarRecords?.length || 0;
+        const noDocs = adlCount === 0 && emarCount === 0;
 
         return (
           <button
             key={shift.id}
             onClick={() => setExpandedId(isExpanded ? null : shift.id)}
-            className="w-full text-left glass-card rounded-xl p-4 space-y-2 active:scale-[0.98] transition-transform"
+            className={`w-full text-left glass-card rounded-xl p-4 space-y-2 active:scale-[0.98] transition-transform ${noDocs ? "border-l-4 border-warning" : ""}`}
           >
             {/* Summary row */}
             <div className="flex items-center justify-between">
@@ -691,6 +692,11 @@ function HistoryView({ shifts, residents }: { shifts: import("@/types").Shift[];
                 <div className="flex gap-2 text-xs text-muted-foreground">
                   {adlCount > 0 && <span className="text-success">{adlCount} ADL</span>}
                   {emarCount > 0 && <span className="text-primary">{emarCount} Med</span>}
+                  {noDocs && (
+                    <span className="text-warning flex items-center gap-0.5">
+                      <AlertTriangle className="w-3 h-3" /> No docs
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
