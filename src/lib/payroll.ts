@@ -95,10 +95,16 @@ export function calculatePayrollLineItem(
   employee: Employee,
   shifts: Shift[]
 ): PayrollLineItem {
+  // Derive effective hourly rate
+  const effectiveRate = employee.payType === "salaried"
+    ? employee.annualSalary / 2080  // 40hrs × 52wks
+    : employee.hourlyRate;
+
   let regularHours = 0;
   let overtimeHours = 0;
   let mealPenaltyHours = 0;
   let sleepDeductionHours = 0;
+  let shiftDifferentialPay = 0;
 
   shifts.forEach(s => {
     if (!s.clockOut) return;
@@ -124,15 +130,35 @@ export function calculatePayrollLineItem(
         sleepDeductionHours += Math.min(netSleepHours, 8);
       }
     }
+
+    // Shift differentials — apply each configured differential to all hours in this shift
+    if (employee.shiftDifferentials?.length > 0) {
+      for (const diff of employee.shiftDifferentials) {
+        const extraMultiplier = diff.multiplier - 1; // e.g. 0.10 for a 1.10x multiplier
+        shiftDifferentialPay += hoursWorked * effectiveRate * extraMultiplier;
+      }
+    }
   });
 
   const grossHours = regularHours + overtimeHours + mealPenaltyHours - sleepDeductionHours;
-  const grossPay = round(
-    (regularHours * employee.hourlyRate) +
-    (overtimeHours * employee.hourlyRate * OT_MULTIPLIER) +
-    (mealPenaltyHours * employee.hourlyRate) -
-    (sleepDeductionHours * employee.hourlyRate)
-  );
+
+  let grossPay: number;
+  if (employee.payType === "salaried") {
+    // Salaried: base is per-period salary, plus OT and adjustments at derived rate
+    const perPeriodSalary = employee.annualSalary / 24; // semi-monthly
+    const otPay = overtimeHours * effectiveRate * OT_MULTIPLIER;
+    const mealPay = mealPenaltyHours * effectiveRate;
+    const sleepDed = sleepDeductionHours * effectiveRate;
+    grossPay = round(perPeriodSalary + otPay + mealPay - sleepDed + shiftDifferentialPay);
+  } else {
+    grossPay = round(
+      (regularHours * effectiveRate) +
+      (overtimeHours * effectiveRate * OT_MULTIPLIER) +
+      (mealPenaltyHours * effectiveRate) -
+      (sleepDeductionHours * effectiveRate) +
+      shiftDifferentialPay
+    );
+  }
 
   const taxes = calculateTaxes(grossPay, employee);
   const netPay = round(grossPay - taxes.totalTaxes);
@@ -140,9 +166,11 @@ export function calculatePayrollLineItem(
   return {
     employeeId: employee.id,
     employeeName: employee.name,
-    hourlyRate: employee.hourlyRate,
+    payType: employee.payType,
+    hourlyRate: round(effectiveRate),
     regularHours: round(regularHours),
     overtimeHours: round(overtimeHours),
+    shiftDifferentialPay: round(shiftDifferentialPay),
     mealPenaltyHours: round(mealPenaltyHours),
     sleepDeductionHours: round(sleepDeductionHours),
     grossHours: round(grossHours),

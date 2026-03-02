@@ -39,17 +39,20 @@ export const MOCK_RESIDENTS: Resident[] = [
 export const MOCK_EMPLOYEES: Employee[] = [
   {
     id: "c1", name: "Maria Garcia", email: "maria@example.com", phone: "(555) 123-4567",
-    hourlyRate: 18.50, filingStatus: "single", federalAllowances: 1, stateAllowances: 1,
+    payType: "hourly", hourlyRate: 18.50, annualSalary: 0, shiftDifferentials: [{ label: "Night", multiplier: 1.10 }],
+    filingStatus: "single", federalAllowances: 1, stateAllowances: 1,
     startDate: "2024-03-15", role: "Lead Caregiver",
   },
   {
     id: "c2", name: "Ana Rodriguez", email: "ana@example.com", phone: "(555) 234-5678",
-    hourlyRate: 17.00, filingStatus: "married", federalAllowances: 2, stateAllowances: 2,
+    payType: "hourly", hourlyRate: 17.00, annualSalary: 0, shiftDifferentials: [],
+    filingStatus: "married", federalAllowances: 2, stateAllowances: 2,
     startDate: "2024-06-01", role: "Caregiver",
   },
   {
     id: "c3", name: "David Chen", email: "david@example.com", phone: "(555) 345-6789",
-    hourlyRate: 19.00, filingStatus: "single", federalAllowances: 1, stateAllowances: 1,
+    payType: "salaried", hourlyRate: 0, annualSalary: 49920, shiftDifferentials: [],
+    filingStatus: "single", federalAllowances: 1, stateAllowances: 1,
     startDate: "2024-01-10", role: "Senior Caregiver",
   },
 ];

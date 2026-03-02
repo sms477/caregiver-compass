@@ -129,6 +129,7 @@ const PayRunWizard = ({ onComplete, onCancel }: Props) => {
                     <th className="text-left p-3 font-medium text-muted-foreground">Employee</th>
                     <th className="text-right p-3 font-medium text-muted-foreground">Regular</th>
                     <th className="text-right p-3 font-medium text-muted-foreground">OT (1.5x)</th>
+                    <th className="text-right p-3 font-medium text-muted-foreground">Diff.</th>
                     <th className="text-right p-3 font-medium text-muted-foreground">Penalties</th>
                     <th className="text-right p-3 font-medium text-muted-foreground">Sleep Ded.</th>
                     <th className="text-right p-3 font-semibold text-foreground">Total Hrs</th>
@@ -139,10 +140,19 @@ const PayRunWizard = ({ onComplete, onCancel }: Props) => {
                     <tr key={li.employeeId} className="border-b border-border last:border-0">
                       <td className="p-3">
                         <p className="font-medium text-foreground">{li.employeeName}</p>
-                        <p className="text-xs text-muted-foreground">{formatCurrency(li.hourlyRate)}/hr</p>
+                        <p className="text-xs text-muted-foreground">
+                          {li.payType === "salaried"
+                            ? `Salaried (${formatCurrency(li.hourlyRate)}/hr equiv.)`
+                            : `${formatCurrency(li.hourlyRate)}/hr`}
+                        </p>
                       </td>
                       <td className="p-3 text-right text-foreground">{li.regularHours.toFixed(1)}</td>
                       <td className="p-3 text-right text-foreground">{li.overtimeHours.toFixed(1)}</td>
+                      <td className="p-3 text-right">
+                        {li.shiftDifferentialPay > 0 ? (
+                          <span className="text-primary font-medium">+{formatCurrency(li.shiftDifferentialPay)}</span>
+                        ) : <span className="text-muted-foreground">—</span>}
+                      </td>
                       <td className="p-3 text-right">
                         {li.mealPenaltyHours > 0 ? (
                           <span className="text-destructive font-medium">+{li.mealPenaltyHours}</span>
@@ -215,7 +225,10 @@ const PayRunWizard = ({ onComplete, onCancel }: Props) => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-semibold text-foreground">{li.employeeName}</p>
-                    <p className="text-xs text-muted-foreground">{li.grossHours.toFixed(1)} hrs × {formatCurrency(li.hourlyRate)}/hr</p>
+                    <p className="text-xs text-muted-foreground">
+                      {li.payType === "salaried" ? "Salaried" : `${li.grossHours.toFixed(1)} hrs × ${formatCurrency(li.hourlyRate)}/hr`}
+                      {li.shiftDifferentialPay > 0 ? ` + ${formatCurrency(li.shiftDifferentialPay)} diff.` : ""}
+                    </p>
                   </div>
                   <div className="text-right">
                     <p className="font-display font-bold text-foreground">{formatCurrency(li.netPay)}</p>
