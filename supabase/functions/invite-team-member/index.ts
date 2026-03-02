@@ -92,9 +92,13 @@ Deno.serve(async (req) => {
     }
 
     // Generate a password reset link so the invited user can set their own password
+    const siteUrl = Deno.env.get("SITE_URL") || req.headers.get("origin") || "";
     const { data: resetData, error: resetError } = await adminClient.auth.admin.generateLink({
       type: "recovery",
       email,
+      options: {
+        redirectTo: `${siteUrl}/reset-password`,
+      },
     });
 
     return new Response(
