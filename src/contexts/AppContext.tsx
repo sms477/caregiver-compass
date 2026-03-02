@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
 import { Shift, ADLReport, EMARRecord, SleepInterruption, UserRole, Employee, PayRun, PayStub } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 
 interface AppState {
   role: UserRole | null;
@@ -44,6 +45,47 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [payRuns, setPayRuns] = useState<PayRun[]>([]);
   const [payStubs, setPayStubs] = useState<PayStub[]>([]);
 
+  // Helper: convert DB row to Shift
+  const dbToShift = (row: any): Shift => ({
+    id: row.id,
+    caregiverId: row.caregiver_id,
+    caregiverName: row.caregiver_name,
+    clockIn: new Date(row.clock_in),
+    clockOut: row.clock_out ? new Date(row.clock_out) : null,
+    is24Hour: row.is_24_hour,
+    mealBreakTaken: row.meal_break_taken,
+    mealBreakReason: row.meal_break_reason,
+    sleepStart: row.sleep_start ? new Date(row.sleep_start) : null,
+    sleepEnd: row.sleep_end ? new Date(row.sleep_end) : null,
+    sleepInterruptions: (row.sleep_interruptions || []).map((si: any) => ({
+      ...si,
+      wakeTime: new Date(si.wakeTime),
+      resumeTime: si.resumeTime ? new Date(si.resumeTime) : null,
+    })),
+    adlReports: row.adl_reports || [],
+    emarRecords: (row.emar_records || []).map((r: any) => ({
+      ...r,
+      administeredAt: new Date(r.administeredAt),
+    })),
+  });
+
+  // Helper: push active shift updates to DB
+  const syncShiftToDB = async (shift: Shift) => {
+    await supabase
+      .from("shifts")
+      .update({
+        clock_out: shift.clockOut?.toISOString() || null,
+        meal_break_taken: shift.mealBreakTaken,
+        meal_break_reason: shift.mealBreakReason,
+        sleep_start: shift.sleepStart?.toISOString() || null,
+        sleep_end: shift.sleepEnd?.toISOString() || null,
+        sleep_interruptions: JSON.parse(JSON.stringify(shift.sleepInterruptions)) as Json,
+        adl_reports: JSON.parse(JSON.stringify(shift.adlReports)) as Json,
+        emar_records: JSON.parse(JSON.stringify(shift.emarRecords)) as Json,
+      })
+      .eq("id", shift.id);
+  };
+
   const refreshEmployees = useCallback(async () => {
     const { data, error } = await supabase
       .from("profiles")
@@ -52,7 +94,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       const mapped: Employee[] = data.map((p) => ({
         id: p.user_id,
         name: p.display_name,
-        email: "", // email is in auth.users, not exposed
+        email: "",
         phone: p.phone || "",
         hourlyRate: Number(p.hourly_rate) || 0,
         filingStatus: (p.filing_status as Employee["filingStatus"]) || "single",
@@ -65,9 +107,24 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
+  // Load shifts from DB
+  const refreshShifts = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("shifts")
+      .select("*")
+      .order("clock_in", { ascending: false });
+    if (data && !error) {
+      const mapped = data.map(dbToShift);
+      // Separate active (no clock_out) from completed
+      const active = mapped.find(s => !s.clockOut && s.caregiverId === currentCaregiverId);
+      const completed = mapped.filter(s => s.clockOut);
+      setShifts(completed);
+      setActiveShift(active || null);
+    }
+  }, [currentCaregiverId]);
+
   useEffect(() => {
     refreshEmployees();
-    // Set currentCaregiverId from the logged-in user
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user?.id) {
         setCurrentCaregiverId(session.user.id);
@@ -75,74 +132,88 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     });
   }, [refreshEmployees]);
 
+  // Load shifts once we know the caregiver ID
+  useEffect(() => {
+    if (currentCaregiverId) {
+      refreshShifts();
+    }
+  }, [currentCaregiverId, refreshShifts]);
+
   const caregiverName = employees.find(c => c.id === currentCaregiverId)?.name || "Unknown";
 
-  const clockIn = useCallback((is24Hour: boolean) => {
-    const newShift: Shift = {
-      id: `s-${Date.now()}`,
-      caregiverId: currentCaregiverId,
-      caregiverName: caregiverName,
-      clockIn: new Date(),
-      clockOut: null,
-      is24Hour,
-      mealBreakTaken: null,
-      mealBreakReason: null,
-      sleepStart: null,
-      sleepEnd: null,
-      sleepInterruptions: [],
-      adlReports: [],
-      emarRecords: [],
-    };
-    setActiveShift(newShift);
+  const clockIn = useCallback(async (is24Hour: boolean) => {
+    const { data, error } = await supabase
+      .from("shifts")
+      .insert({
+        caregiver_id: currentCaregiverId,
+        caregiver_name: caregiverName,
+        clock_in: new Date().toISOString(),
+        is_24_hour: is24Hour,
+      })
+      .select()
+      .single();
+
+    if (data && !error) {
+      setActiveShift(dbToShift(data));
+    }
   }, [currentCaregiverId, caregiverName]);
 
-  const clockOut = useCallback((mealBreakTaken: boolean, mealBreakReason: string | null) => {
+  const clockOut = useCallback(async (mealBreakTaken: boolean, mealBreakReason: string | null) => {
     if (!activeShift) return;
     const completed: Shift = { ...activeShift, clockOut: new Date(), mealBreakTaken, mealBreakReason };
+    await syncShiftToDB(completed);
     setShifts(prev => [completed, ...prev]);
     setActiveShift(null);
   }, [activeShift]);
 
-  const startSleep = useCallback(() => {
+  const startSleep = useCallback(async () => {
     if (!activeShift) return;
-    setActiveShift(prev => prev ? { ...prev, sleepStart: new Date() } : null);
+    const updated = { ...activeShift, sleepStart: new Date() };
+    setActiveShift(updated);
+    await syncShiftToDB(updated);
   }, [activeShift]);
 
-  const endSleep = useCallback(() => {
+  const endSleep = useCallback(async () => {
     if (!activeShift) return;
-    setActiveShift(prev => prev ? { ...prev, sleepEnd: new Date() } : null);
+    const updated = { ...activeShift, sleepEnd: new Date() };
+    setActiveShift(updated);
+    await syncShiftToDB(updated);
   }, [activeShift]);
 
-  const logSleepInterruption = useCallback((reason: string) => {
+  const logSleepInterruption = useCallback(async (reason: string) => {
     if (!activeShift) return;
     const interruption: SleepInterruption = { id: `si-${Date.now()}`, wakeTime: new Date(), resumeTime: null, reason };
-    setActiveShift(prev => prev ? { ...prev, sleepInterruptions: [...prev.sleepInterruptions, interruption] } : null);
+    const updated = { ...activeShift, sleepInterruptions: [...activeShift.sleepInterruptions, interruption] };
+    setActiveShift(updated);
+    await syncShiftToDB(updated);
   }, [activeShift]);
 
-  const resumeSleep = useCallback(() => {
+  const resumeSleep = useCallback(async () => {
     if (!activeShift) return;
-    setActiveShift(prev => {
-      if (!prev) return null;
-      const interruptions = [...prev.sleepInterruptions];
-      const last = interruptions[interruptions.length - 1];
-      if (last && !last.resumeTime) interruptions[interruptions.length - 1] = { ...last, resumeTime: new Date() };
-      return { ...prev, sleepInterruptions: interruptions };
-    });
+    const interruptions = [...activeShift.sleepInterruptions];
+    const last = interruptions[interruptions.length - 1];
+    if (last && !last.resumeTime) interruptions[interruptions.length - 1] = { ...last, resumeTime: new Date() };
+    const updated = { ...activeShift, sleepInterruptions: interruptions };
+    setActiveShift(updated);
+    await syncShiftToDB(updated);
   }, [activeShift]);
 
-  const addADLReport = useCallback((report: ADLReport) => {
+  const addADLReport = useCallback(async (report: ADLReport) => {
     if (!activeShift) return;
-    setActiveShift(prev => prev ? { ...prev, adlReports: [...prev.adlReports.filter(r => r.residentId !== report.residentId), report] } : null);
+    const updated = { ...activeShift, adlReports: [...activeShift.adlReports.filter(r => r.residentId !== report.residentId), report] };
+    setActiveShift(updated);
+    await syncShiftToDB(updated);
   }, [activeShift]);
 
-  const addEMARRecord = useCallback((record: Omit<EMARRecord, "id">) => {
+  const addEMARRecord = useCallback(async (record: Omit<EMARRecord, "id">) => {
     if (!activeShift) return;
     const full: EMARRecord = { ...record, id: `em-${Date.now()}` };
-    setActiveShift(prev => prev ? { ...prev, emarRecords: [...prev.emarRecords, full] } : null);
+    const updated = { ...activeShift, emarRecords: [...activeShift.emarRecords, full] };
+    setActiveShift(updated);
+    await syncShiftToDB(updated);
   }, [activeShift]);
 
   const updateEmployee = useCallback(async (emp: Employee) => {
-    // Update in DB
     await supabase
       .from("profiles")
       .update({

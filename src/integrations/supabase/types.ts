@@ -59,6 +59,60 @@ export type Database = {
         }
         Relationships: []
       }
+      shifts: {
+        Row: {
+          adl_reports: Json
+          caregiver_id: string
+          caregiver_name: string
+          clock_in: string
+          clock_out: string | null
+          created_at: string
+          emar_records: Json
+          id: string
+          is_24_hour: boolean
+          meal_break_reason: string | null
+          meal_break_taken: boolean | null
+          sleep_end: string | null
+          sleep_interruptions: Json
+          sleep_start: string | null
+          updated_at: string
+        }
+        Insert: {
+          adl_reports?: Json
+          caregiver_id: string
+          caregiver_name: string
+          clock_in?: string
+          clock_out?: string | null
+          created_at?: string
+          emar_records?: Json
+          id?: string
+          is_24_hour?: boolean
+          meal_break_reason?: string | null
+          meal_break_taken?: boolean | null
+          sleep_end?: string | null
+          sleep_interruptions?: Json
+          sleep_start?: string | null
+          updated_at?: string
+        }
+        Update: {
+          adl_reports?: Json
+          caregiver_id?: string
+          caregiver_name?: string
+          clock_in?: string
+          clock_out?: string | null
+          created_at?: string
+          emar_records?: Json
+          id?: string
+          is_24_hour?: boolean
+          meal_break_reason?: string | null
+          meal_break_taken?: boolean | null
+          sleep_end?: string | null
+          sleep_interruptions?: Json
+          sleep_start?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
