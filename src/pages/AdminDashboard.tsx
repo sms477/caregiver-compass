@@ -350,47 +350,94 @@ function StatCard({ icon: Icon, label, value, accent }: {
 }
 
 function ShiftLogView({ shifts }: { shifts: Shift[] }) {
+  const [groupBy, setGroupBy] = useState<"day" | "employee">("day");
+
+  const grouped = useMemo(() => {
+    const map = new Map<string, Shift[]>();
+    const sorted = [...shifts].sort((a, b) => new Date(b.clockIn).getTime() - new Date(a.clockIn).getTime());
+    sorted.forEach(s => {
+      const key = groupBy === "day"
+        ? new Date(s.clockIn).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })
+        : s.caregiverName;
+      const arr = map.get(key) || [];
+      arr.push(s);
+      map.set(key, arr);
+    });
+    return map;
+  }, [shifts, groupBy]);
+
   return (
     <div className="space-y-4 animate-slide-up">
-      <div>
-        <h2 className="text-xl font-display font-bold text-foreground">Shift Log</h2>
-        <p className="text-sm text-muted-foreground mt-1">Complete history of all caregiver shifts.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-display font-bold text-foreground">Shift Log</h2>
+          <p className="text-sm text-muted-foreground mt-1">Complete history of all caregiver shifts.</p>
+        </div>
+        <div className="flex gap-1 bg-muted/30 rounded-lg p-1">
+          <button
+            onClick={() => setGroupBy("day")}
+            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+              groupBy === "day" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Clock className="w-3.5 h-3.5" /> By Day
+          </button>
+          <button
+            onClick={() => setGroupBy("employee")}
+            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+              groupBy === "employee" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Users className="w-3.5 h-3.5" /> By Employee
+          </button>
+        </div>
       </div>
-      <div className="space-y-3">
-        {shifts.map(s => (
-          <div key={s.id} className="glass-card rounded-xl p-4 space-y-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-foreground">{s.caregiverName}</p>
-                <p className="text-xs text-muted-foreground">
-                  {new Date(s.clockIn).toLocaleDateString()} — {new Date(s.clockIn).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} to{" "}
-                  {s.clockOut ? new Date(s.clockOut).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"}
-                </p>
+
+      {shifts.length === 0 ? (
+        <p className="text-center text-muted-foreground py-8">No completed shifts yet.</p>
+      ) : (
+        <div className="space-y-4">
+          {[...grouped.entries()].map(([groupLabel, groupShifts]) => (
+            <div key={groupLabel} className="glass-card rounded-xl overflow-hidden">
+              <div className="bg-muted/30 px-4 py-3 flex items-center justify-between">
+                <h3 className="font-semibold text-foreground text-sm">{groupLabel}</h3>
+                <span className="text-xs text-muted-foreground">{groupShifts.length} shift(s)</span>
               </div>
-              <div className="flex gap-2">
-                {s.is24Hour && (
-                  <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full font-medium">24hr</span>
-                )}
-                {s.mealBreakTaken === false && (
-                  <span className="text-xs bg-destructive/10 text-destructive px-2 py-1 rounded-full font-medium">No break</span>
-                )}
-                {s.mealBreakTaken === true && (
-                  <span className="text-xs bg-success/10 text-success px-2 py-1 rounded-full font-medium">Break ✓</span>
-                )}
+              <div className="divide-y divide-border">
+                {groupShifts.map(s => (
+                  <div key={s.id} className="px-4 py-3 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        {groupBy === "day" ? (
+                          <p className="font-medium text-foreground text-sm">{s.caregiverName}</p>
+                        ) : (
+                          <p className="font-medium text-foreground text-sm">
+                            {new Date(s.clockIn).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+                          </p>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(s.clockIn).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} → {s.clockOut ? new Date(s.clockOut).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"}
+                        </p>
+                      </div>
+                      <div className="flex gap-1.5">
+                        {s.is24Hour && <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">24hr</span>}
+                        {s.mealBreakTaken === false && <span className="text-xs bg-destructive/10 text-destructive px-2 py-0.5 rounded-full font-medium">No break</span>}
+                        {s.mealBreakTaken === true && <span className="text-xs bg-success/10 text-success px-2 py-0.5 rounded-full font-medium">Break ✓</span>}
+                      </div>
+                    </div>
+                    {(s.emarRecords.length > 0 || s.adlReports.length > 0) && (
+                      <div className="flex gap-3 text-xs text-muted-foreground">
+                        {s.emarRecords.length > 0 && <span>{s.emarRecords.length} med(s)</span>}
+                        {s.adlReports.length > 0 && <span>{s.adlReports.length} ADL(s)</span>}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
-            {s.emarRecords.length > 0 && (
-              <p className="text-xs text-muted-foreground">{s.emarRecords.length} medication(s) administered</p>
-            )}
-            {s.adlReports.length > 0 && (
-              <p className="text-xs text-muted-foreground">{s.adlReports.length} ADL report(s) filed</p>
-            )}
-          </div>
-        ))}
-        {shifts.length === 0 && (
-          <p className="text-center text-muted-foreground py-8">No completed shifts yet.</p>
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
