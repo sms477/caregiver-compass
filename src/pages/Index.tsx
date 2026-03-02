@@ -4,10 +4,11 @@ import { Heart, ArrowRight, LogOut } from "lucide-react";
 interface IndexProps {
   isAdmin?: boolean;
   isReviewer?: boolean;
+  isSuperAdmin?: boolean;
   signOut?: () => Promise<void>;
 }
 
-const Index = ({ isAdmin, isReviewer, signOut }: IndexProps) => {
+const Index = ({ isAdmin, isReviewer, isSuperAdmin, signOut }: IndexProps) => {
   const { setRole, setCurrentCaregiverId } = useApp();
 
   return (
@@ -80,6 +81,27 @@ const Index = ({ isAdmin, isReviewer, signOut }: IndexProps) => {
                   <div>
                     <h2 className="text-lg font-semibold text-foreground">Reviewer</h2>
                     <p className="text-sm text-muted-foreground">Read-only reports & audit trail</p>
+                  </div>
+                </div>
+                <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+              </div>
+            </button>
+          )}
+
+          {/* Super Admin Card */}
+          {isSuperAdmin && (
+            <button
+              onClick={() => setRole("super_admin")}
+              className="w-full glass-card rounded-xl p-6 text-left transition-all hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] group border-2 border-primary/20"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-primary text-primary-foreground flex items-center justify-center">
+                    <span className="text-lg font-display font-black">K</span>
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-foreground">Super Admin</h2>
+                    <p className="text-sm text-muted-foreground">Organizations, locations & billing</p>
                   </div>
                 </div>
                 <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />

@@ -56,6 +56,7 @@ export type Database = {
           id: string
           immediate_action: string
           incident_type: string
+          location_id: string | null
           occurred_at: string
           resident_id: string | null
           resident_name: string
@@ -72,6 +73,7 @@ export type Database = {
           id?: string
           immediate_action?: string
           incident_type?: string
+          location_id?: string | null
           occurred_at?: string
           resident_id?: string | null
           resident_name: string
@@ -88,6 +90,7 @@ export type Database = {
           id?: string
           immediate_action?: string
           incident_type?: string
+          location_id?: string | null
           occurred_at?: string
           resident_id?: string | null
           resident_name?: string
@@ -98,10 +101,58 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "incidents_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "incidents_resident_id_fkey"
             columns: ["resident_id"]
             isOneToOne: false
             referencedRelation: "residents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      locations: {
+        Row: {
+          address: string | null
+          created_at: string
+          id: string
+          license_number: string | null
+          name: string
+          org_id: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          license_number?: string | null
+          name: string
+          org_id: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          license_number?: string | null
+          name?: string
+          org_id?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "locations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -111,6 +162,7 @@ export type Database = {
           created_at: string
           dosage: string
           id: string
+          location_id: string | null
           name: string
           resident_id: string
           schedule: string
@@ -120,6 +172,7 @@ export type Database = {
           created_at?: string
           dosage: string
           id?: string
+          location_id?: string | null
           name: string
           resident_id: string
           schedule?: string
@@ -129,12 +182,20 @@ export type Database = {
           created_at?: string
           dosage?: string
           id?: string
+          location_id?: string | null
           name?: string
           resident_id?: string
           schedule?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "medications_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "medications_resident_id_fkey"
             columns: ["resident_id"]
@@ -144,6 +205,75 @@ export type Database = {
           },
         ]
       }
+      org_memberships: {
+        Row: {
+          created_at: string
+          id: string
+          location_id: string | null
+          org_id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          location_id?: string | null
+          org_id: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          location_id?: string | null
+          org_id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_memberships_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_memberships_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          owner_id: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          owner_id: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          owner_id?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pay_runs: {
         Row: {
           approved_at: string | null
@@ -152,6 +282,7 @@ export type Database = {
           created_by: string
           id: string
           line_items: Json
+          location_id: string | null
           pay_period: Json
           status: string
           total_gross_pay: number
@@ -166,6 +297,7 @@ export type Database = {
           created_by: string
           id?: string
           line_items?: Json
+          location_id?: string | null
           pay_period: Json
           status?: string
           total_gross_pay?: number
@@ -180,6 +312,7 @@ export type Database = {
           created_by?: string
           id?: string
           line_items?: Json
+          location_id?: string | null
           pay_period?: Json
           status?: string
           total_gross_pay?: number
@@ -187,7 +320,15 @@ export type Database = {
           total_taxes?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pay_runs_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pay_stubs: {
         Row: {
@@ -196,6 +337,7 @@ export type Database = {
           employee_name: string
           id: string
           line_item: Json
+          location_id: string | null
           paid_at: string
           pay_period: Json
           pay_run_id: string
@@ -206,6 +348,7 @@ export type Database = {
           employee_name: string
           id?: string
           line_item: Json
+          location_id?: string | null
           paid_at?: string
           pay_period: Json
           pay_run_id: string
@@ -216,11 +359,19 @@ export type Database = {
           employee_name?: string
           id?: string
           line_item?: Json
+          location_id?: string | null
           paid_at?: string
           pay_period?: Json
           pay_run_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "pay_stubs_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "pay_stubs_pay_run_id_fkey"
             columns: ["pay_run_id"]
@@ -236,6 +387,7 @@ export type Database = {
           id: string
           initiated_at: string
           initiated_by: string
+          location_id: string | null
           notes: string | null
           pay_run_id: string
           payment_count: number
@@ -249,6 +401,7 @@ export type Database = {
           id?: string
           initiated_at?: string
           initiated_by: string
+          location_id?: string | null
           notes?: string | null
           pay_run_id: string
           payment_count?: number
@@ -262,6 +415,7 @@ export type Database = {
           id?: string
           initiated_at?: string
           initiated_by?: string
+          location_id?: string | null
           notes?: string | null
           pay_run_id?: string
           payment_count?: number
@@ -271,6 +425,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "payment_batches_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "payment_batches_pay_run_id_fkey"
             columns: ["pay_run_id"]
@@ -386,6 +547,7 @@ export type Database = {
           hourly_rate: number | null
           id: string
           job_title: string | null
+          org_id: string | null
           pay_type: string
           phone: string | null
           shift_differentials: Json
@@ -409,6 +571,7 @@ export type Database = {
           hourly_rate?: number | null
           id?: string
           job_title?: string | null
+          org_id?: string | null
           pay_type?: string
           phone?: string | null
           shift_differentials?: Json
@@ -432,6 +595,7 @@ export type Database = {
           hourly_rate?: number | null
           id?: string
           job_title?: string | null
+          org_id?: string | null
           pay_type?: string
           phone?: string | null
           shift_differentials?: Json
@@ -441,12 +605,21 @@ export type Database = {
           user_id?: string
           w4?: Json
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       residents: {
         Row: {
           created_at: string
           id: string
+          location_id: string | null
           name: string
           room: string
           updated_at: string
@@ -454,6 +627,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          location_id?: string | null
           name: string
           room: string
           updated_at?: string
@@ -461,11 +635,20 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          location_id?: string | null
           name?: string
           room?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "residents_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       shifts: {
         Row: {
@@ -480,6 +663,7 @@ export type Database = {
           emar_records: Json
           id: string
           is_24_hour: boolean
+          location_id: string | null
           meal_break_reason: string | null
           meal_break_taken: boolean | null
           second_meal_break_reason: string | null
@@ -501,6 +685,7 @@ export type Database = {
           emar_records?: Json
           id?: string
           is_24_hour?: boolean
+          location_id?: string | null
           meal_break_reason?: string | null
           meal_break_taken?: boolean | null
           second_meal_break_reason?: string | null
@@ -522,6 +707,7 @@ export type Database = {
           emar_records?: Json
           id?: string
           is_24_hour?: boolean
+          location_id?: string | null
           meal_break_reason?: string | null
           meal_break_taken?: boolean | null
           second_meal_break_reason?: string | null
@@ -531,7 +717,15 @@ export type Database = {
           sleep_start?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "shifts_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tax_filings: {
         Row: {
@@ -662,9 +856,26 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      user_has_location_access: {
+        Args: { _location_id: string; _user_id: string }
+        Returns: boolean
+      }
+      user_has_role_at_location: {
+        Args: {
+          _location_id: string
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      user_in_org: {
+        Args: { _org_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      app_role: "admin" | "caregiver" | "reviewer"
+      app_role: "admin" | "caregiver" | "reviewer" | "super_admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -792,7 +1003,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "caregiver", "reviewer"],
+      app_role: ["admin", "caregiver", "reviewer", "super_admin"],
     },
   },
 } as const
