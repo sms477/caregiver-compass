@@ -244,6 +244,12 @@ const PayRunWizard = ({ onComplete, onCancel }: Props) => {
                     <span className="text-muted-foreground">Federal Tax</span>
                     <span className="text-foreground font-medium">-{formatCurrency(li.taxes.federalIncome)}</span>
                   </div>
+                  {li.taxes.additionalFederal > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Addl. Federal (W-4)</span>
+                      <span className="text-foreground font-medium">-{formatCurrency(li.taxes.additionalFederal)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Social Security</span>
                     <span className="text-foreground font-medium">-{formatCurrency(li.taxes.socialSecurity)}</span>
@@ -256,9 +262,52 @@ const PayRunWizard = ({ onComplete, onCancel }: Props) => {
                     <span className="text-muted-foreground">CA State Tax</span>
                     <span className="text-foreground font-medium">-{formatCurrency(li.taxes.stateIncome)}</span>
                   </div>
+                  {li.taxes.localTax > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Local Tax</span>
+                      <span className="text-foreground font-medium">-{formatCurrency(li.taxes.localTax)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">CA SDI</span>
                     <span className="text-foreground font-medium">-{formatCurrency(li.taxes.sdi)}</span>
+                  </div>
+
+                  {/* Pre-tax deductions */}
+                  {li.deductions.preTax.map((d, i) => (
+                    <div key={`pre-${i}`} className="flex justify-between">
+                      <span className="text-muted-foreground">{d.label} (pre-tax)</span>
+                      <span className="text-foreground font-medium">-{formatCurrency(d.amount)}</span>
+                    </div>
+                  ))}
+
+                  {/* Post-tax deductions */}
+                  {li.deductions.postTax.map((d, i) => (
+                    <div key={`post-${i}`} className="flex justify-between">
+                      <span className="text-muted-foreground">{d.label} (post-tax)</span>
+                      <span className="text-foreground font-medium">-{formatCurrency(d.amount)}</span>
+                    </div>
+                  ))}
+
+                  {/* Employer taxes (informational) */}
+                  <div className="col-span-2 border-t border-border mt-1 pt-1">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Employer Cost</p>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Employer SS</span>
+                    <span className="text-muted-foreground">{formatCurrency(li.taxes.employerSocialSecurity)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Employer Medicare</span>
+                    <span className="text-muted-foreground">{formatCurrency(li.taxes.employerMedicare)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">FUTA</span>
+                    <span className="text-muted-foreground">{formatCurrency(li.taxes.futa)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">CA SUI</span>
+                    <span className="text-muted-foreground">{formatCurrency(li.taxes.sui)}</span>
                   </div>
                 </div>
               </div>

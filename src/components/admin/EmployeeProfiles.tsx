@@ -367,10 +367,138 @@ const EmployeeProfiles = () => {
                   )}
                 </div>
 
-                {/* Tax Info */}
-                <div className="border-t border-border pt-3 flex gap-4 text-xs text-muted-foreground">
-                  <span>Federal Allowances: <span className="text-foreground font-medium">{data.federalAllowances}</span></span>
-                  <span>State Allowances: <span className="text-foreground font-medium">{data.stateAllowances}</span></span>
+                {/* W-4 & Tax Config */}
+                <div className="border-t border-border pt-3 space-y-2">
+                  <label className="text-xs text-muted-foreground font-medium">W-4 / Tax Configuration</label>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground">Fed. Allowances</label>
+                      {isEditing ? (
+                        <input
+                          type="number"
+                          value={editForm?.federalAllowances}
+                          onChange={e => setEditForm(prev => prev ? { ...prev, federalAllowances: parseInt(e.target.value) || 0 } : null)}
+                          className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                        />
+                      ) : (
+                        <p className="text-foreground font-medium">{data.federalAllowances}</p>
+                      )}
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground">State Allowances</label>
+                      {isEditing ? (
+                        <input
+                          type="number"
+                          value={editForm?.stateAllowances}
+                          onChange={e => setEditForm(prev => prev ? { ...prev, stateAllowances: parseInt(e.target.value) || 0 } : null)}
+                          className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                        />
+                      ) : (
+                        <p className="text-foreground font-medium">{data.stateAllowances}</p>
+                      )}
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground">Addl. Withholding (W-4 4c)</label>
+                      {isEditing ? (
+                        <input
+                          type="number"
+                          step="1"
+                          value={editForm?.w4?.additionalWithholding || 0}
+                          onChange={e => setEditForm(prev => prev ? { ...prev, w4: { ...prev.w4, additionalWithholding: parseFloat(e.target.value) || 0 } } : null)}
+                          className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                        />
+                      ) : (
+                        <p className="text-foreground font-medium">{formatCurrency(data.w4?.additionalWithholding || 0)}</p>
+                      )}
+                    </div>
+                    <div className="space-y-1 flex items-end gap-2">
+                      <label className="text-xs text-muted-foreground">Exempt</label>
+                      {isEditing ? (
+                        <input
+                          type="checkbox"
+                          checked={editForm?.w4?.isExempt || false}
+                          onChange={e => setEditForm(prev => prev ? { ...prev, w4: { ...prev.w4, isExempt: e.target.checked } } : null)}
+                          className="w-5 h-5 accent-primary"
+                        />
+                      ) : (
+                        <p className="text-foreground font-medium">{data.w4?.isExempt ? "Yes" : "No"}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Deductions */}
+                <div className="border-t border-border pt-3 space-y-2">
+                  <label className="text-xs text-muted-foreground font-medium">Deductions (per pay period)</label>
+                  {(data.deductions || []).length === 0 && !isEditing && (
+                    <p className="text-xs text-muted-foreground italic">None configured</p>
+                  )}
+                  {(data.deductions || []).map((ded, idx) => (
+                    <div key={idx} className="flex items-center gap-2 text-sm">
+                      {isEditing ? (
+                        <>
+                          <input
+                            value={ded.label}
+                            onChange={e => {
+                              const deds = [...(editForm?.deductions || [])];
+                              deds[idx] = { ...deds[idx], label: e.target.value };
+                              setEditForm(prev => prev ? { ...prev, deductions: deds } : null);
+                            }}
+                            placeholder="Label"
+                            className="w-28 rounded-md border border-border bg-background px-2 py-1 text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                          />
+                          <select
+                            value={ded.type}
+                            onChange={e => {
+                              const deds = [...(editForm?.deductions || [])];
+                              deds[idx] = { ...deds[idx], type: e.target.value as "pre_tax" | "post_tax" };
+                              setEditForm(prev => prev ? { ...prev, deductions: deds } : null);
+                            }}
+                            className="w-24 rounded-md border border-border bg-background px-1 py-1 text-xs focus:ring-2 focus:ring-primary focus:outline-none"
+                          >
+                            <option value="pre_tax">Pre-tax</option>
+                            <option value="post_tax">Post-tax</option>
+                          </select>
+                          <input
+                            type="number"
+                            step="1"
+                            value={ded.amount}
+                            onChange={e => {
+                              const deds = [...(editForm?.deductions || [])];
+                              deds[idx] = { ...deds[idx], amount: parseFloat(e.target.value) || 0 };
+                              setEditForm(prev => prev ? { ...prev, deductions: deds } : null);
+                            }}
+                            className="w-20 rounded-md border border-border bg-background px-2 py-1 text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                          />
+                          <button
+                            onClick={() => {
+                              const deds = (editForm?.deductions || []).filter((_, i) => i !== idx);
+                              setEditForm(prev => prev ? { ...prev, deductions: deds } : null);
+                            }}
+                            className="text-destructive text-xs"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </>
+                      ) : (
+                        <span className="text-foreground">
+                          {ded.label}: <span className="font-medium">{formatCurrency(ded.amount)}</span>
+                          <span className="text-muted-foreground ml-1">({ded.type === "pre_tax" ? "pre-tax" : "post-tax"})</span>
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                  {isEditing && (
+                    <button
+                      onClick={() => {
+                        const deds = [...(editForm?.deductions || []), { label: "", type: "pre_tax" as const, amount: 0 }];
+                        setEditForm(prev => prev ? { ...prev, deductions: deds } : null);
+                      }}
+                      className="text-xs text-primary font-medium"
+                    >
+                      + Add Deduction
+                    </button>
+                  )}
                 </div>
               </div>
             );

@@ -57,10 +57,22 @@ export interface EMARRecord {
 
 export type FilingStatus = 'single' | 'married' | 'head_of_household';
 export type PayType = 'hourly' | 'salaried';
+export type DeductionType = 'pre_tax' | 'post_tax';
 
 export interface ShiftDifferential {
   label: string;        // e.g. "Night", "Weekend"
   multiplier: number;   // e.g. 1.10 for 10% extra
+}
+
+export interface Deduction {
+  label: string;           // e.g. "Health Insurance", "401k", "Garnishment"
+  type: DeductionType;     // pre_tax or post_tax
+  amount: number;          // flat $ per pay period
+}
+
+export interface W4Config {
+  additionalWithholding: number;   // W-4 Line 4(c) extra federal per period
+  isExempt: boolean;               // W-4 exempt from federal withholding
 }
 
 export interface Employee {
@@ -69,23 +81,44 @@ export interface Employee {
   email: string;
   phone: string;
   payType: PayType;
-  hourlyRate: number;         // used for hourly employees (and as derived rate for salaried)
-  annualSalary: number;       // used for salaried employees
+  hourlyRate: number;
+  annualSalary: number;
   shiftDifferentials: ShiftDifferential[];
   filingStatus: FilingStatus;
   federalAllowances: number;
   stateAllowances: number;
+  w4: W4Config;
+  deductions: Deduction[];
   startDate: string;
   role: string;
 }
 
 export interface TaxBreakdown {
+  // Employee taxes
   federalIncome: number;
+  additionalFederal: number;
   socialSecurity: number;
   medicare: number;
   stateIncome: number;
-  sdi: number; // CA State Disability Insurance
+  localTax: number;
+  sdi: number;
+  totalEmployeeTaxes: number;
+  // Employer taxes
+  employerSocialSecurity: number;
+  employerMedicare: number;
+  futa: number;        // Federal Unemployment
+  sui: number;         // State Unemployment (CA)
+  totalEmployerTaxes: number;
+  // Legacy compat
   totalTaxes: number;
+}
+
+export interface DeductionBreakdown {
+  preTax: { label: string; amount: number }[];
+  postTax: { label: string; amount: number }[];
+  totalPreTax: number;
+  totalPostTax: number;
+  totalDeductions: number;
 }
 
 export interface PayrollLineItem {
@@ -101,6 +134,7 @@ export interface PayrollLineItem {
   grossHours: number;
   grossPay: number;
   taxes: TaxBreakdown;
+  deductions: DeductionBreakdown;
   netPay: number;
   shifts: Shift[];
 }
