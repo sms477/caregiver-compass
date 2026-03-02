@@ -6,7 +6,7 @@ import {
   Clock, LogOut, Moon, Sun, AlertTriangle, Check, Pill,
   ChevronLeft, ClipboardList, Activity, ArrowLeft
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 type Tab = "clock" | "adl" | "emar";
 
@@ -25,7 +25,7 @@ const CaregiverView = () => {
   const [showWakePrompt, setShowWakePrompt] = useState(false);
 
   const { employees } = useApp();
-  const { toast } = useToast();
+  
   const caregiverName = employees.find(c => c.id === currentCaregiverId)?.name || "";
   const clockInTimeRef = useRef<Date | null>(null);
 
@@ -57,9 +57,11 @@ const CaregiverView = () => {
     
     if (!shouldClockOut) return;
 
-    // Calculate duration before clocking out
+    // Capture summary before state clears
     const duration = clockInTime ? formatDuration(Date.now() - clockInTime.getTime()) : "unknown";
     const name = caregiverName || "Your";
+    const adlCount = activeShift?.adlReports?.length || 0;
+    const emarCount = activeShift?.emarRecords?.length || 0;
 
     if (taken) {
       await clockOut(true, null);
@@ -70,10 +72,15 @@ const CaregiverView = () => {
       setMealReason("");
     }
 
-    // Show toast after clock-out completes
-    toast({
-      title: "✓ Shift logged!",
-      description: `${name} shift of ${duration} has been recorded.`,
+    // Build summary lines
+    const parts = [`${name}'s shift of ${duration} has been recorded.`];
+    if (adlCount > 0) parts.push(`${adlCount} ADL report(s) logged.`);
+    if (emarCount > 0) parts.push(`${emarCount} medication(s) administered.`);
+    if (adlCount === 0 && emarCount === 0) parts.push("No ADL reports or medications were logged.");
+
+    toast.success("✓ Shift logged!", {
+      description: parts.join(" "),
+      duration: 6000,
     });
   };
 
