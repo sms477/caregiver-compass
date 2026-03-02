@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       profiles: {
         Row: {
+          annual_salary: number | null
           created_at: string
           display_name: string
           federal_allowances: number | null
@@ -23,13 +24,16 @@ export type Database = {
           hourly_rate: number | null
           id: string
           job_title: string | null
+          pay_type: string
           phone: string | null
+          shift_differentials: Json
           start_date: string | null
           state_allowances: number | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          annual_salary?: number | null
           created_at?: string
           display_name: string
           federal_allowances?: number | null
@@ -37,13 +41,16 @@ export type Database = {
           hourly_rate?: number | null
           id?: string
           job_title?: string | null
+          pay_type?: string
           phone?: string | null
+          shift_differentials?: Json
           start_date?: string | null
           state_allowances?: number | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          annual_salary?: number | null
           created_at?: string
           display_name?: string
           federal_allowances?: number | null
@@ -51,7 +58,9 @@ export type Database = {
           hourly_rate?: number | null
           id?: string
           job_title?: string | null
+          pay_type?: string
           phone?: string | null
+          shift_differentials?: Json
           start_date?: string | null
           state_allowances?: number | null
           updated_at?: string
