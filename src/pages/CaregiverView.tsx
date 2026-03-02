@@ -9,8 +9,9 @@ import {
 import { toast } from "sonner";
 import MyPayStubs from "@/components/caregiver/MyPayStubs";
 import MyTaxForms from "@/components/caregiver/MyTaxForms";
+import IncidentsView from "@/components/admin/IncidentsView";
 
-type Tab = "clock" | "adl" | "emar" | "history" | "paystubs" | "taxforms";
+type Tab = "clock" | "adl" | "emar" | "incidents" | "history" | "paystubs" | "taxforms";
 
 const CaregiverView = () => {
   const {
@@ -133,6 +134,7 @@ const CaregiverView = () => {
             { key: "adl" as Tab, icon: ClipboardList, label: "ADLs" },
             { key: "emar" as Tab, icon: Pill, label: "eMAR" },
           ] : []),
+          { key: "incidents" as Tab, icon: AlertTriangle, label: "Incidents" },
           { key: "paystubs" as Tab, icon: Receipt, label: "Pay Stubs" },
           { key: "taxforms" as Tab, icon: FileText, label: "Tax Forms" },
           { key: "history" as Tab, icon: History, label: "History" },
@@ -156,6 +158,8 @@ const CaregiverView = () => {
           <MyPayStubs />
         ) : tab === "taxforms" ? (
           <MyTaxForms />
+        ) : tab === "incidents" ? (
+          <IncidentsView staffOnly={{ id: currentCaregiverId, name: caregiverName }} />
         ) : tab === "history" ? (
           <HistoryView shifts={shifts} residents={residents} />
         ) : !activeShift ? (
