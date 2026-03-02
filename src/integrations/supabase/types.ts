@@ -14,6 +14,65 @@ export type Database = {
   }
   public: {
     Tables: {
+      incidents: {
+        Row: {
+          created_at: string
+          description: string
+          follow_up_notes: string | null
+          follow_up_required: boolean
+          id: string
+          immediate_action: string
+          incident_type: string
+          occurred_at: string
+          resident_id: string | null
+          resident_name: string
+          staff_id: string
+          staff_name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          follow_up_notes?: string | null
+          follow_up_required?: boolean
+          id?: string
+          immediate_action?: string
+          incident_type?: string
+          occurred_at?: string
+          resident_id?: string | null
+          resident_name: string
+          staff_id: string
+          staff_name: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          follow_up_notes?: string | null
+          follow_up_required?: boolean
+          id?: string
+          immediate_action?: string
+          incident_type?: string
+          occurred_at?: string
+          resident_id?: string | null
+          resident_name?: string
+          staff_id?: string
+          staff_name?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incidents_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: false
+            referencedRelation: "residents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       medications: {
         Row: {
           created_at: string
