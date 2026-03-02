@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import CaregiverView from "./pages/CaregiverView";
 import AdminDashboard from "./pages/AdminDashboard";
+import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import AuthPage from "./pages/AuthPage";
 import ResetPassword from "./pages/ResetPassword";
 import { Loader2 } from "lucide-react";
@@ -35,7 +36,7 @@ const AppRouter = () => {
 
   if (role === "caregiver") return <CaregiverView />;
   if (role === "admin" && (isAdmin || isReviewer || isSuperAdmin)) return <AdminDashboard />;
-  if (role === "super_admin" && isSuperAdmin) return <AdminDashboard />;
+  if (role === "super_admin" && isSuperAdmin) return <SuperAdminDashboard />;
 
   return <Index isAdmin={isAdmin} isReviewer={isReviewer} isSuperAdmin={isSuperAdmin} signOut={signOut} />;
 };
