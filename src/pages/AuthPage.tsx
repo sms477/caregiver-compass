@@ -88,8 +88,8 @@ const AuthPage = () => {
           </button>
         </form>
 
-        <p className="text-center text-sm text-muted-foreground">
-          Invite-only portal. Contact your administrator for access.
+        <p className="text-center text-xs text-muted-foreground">
+          Invite-only portal · Contact your administrator for access
         </p>
       </div>
     </div>
