@@ -103,6 +103,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         filingStatus: (p.filing_status as Employee["filingStatus"]) || "single",
         federalAllowances: p.federal_allowances || 1,
         stateAllowances: p.state_allowances || 1,
+        w4: ((p as any).w4 as Employee["w4"]) || { additionalWithholding: 0, isExempt: false },
+        deductions: ((p as any).deductions as Employee["deductions"]) || [],
         startDate: p.start_date || p.created_at,
         role: p.job_title || "Caregiver",
       }));
@@ -240,6 +242,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         pay_type: emp.payType,
         annual_salary: emp.annualSalary,
         shift_differentials: JSON.parse(JSON.stringify(emp.shiftDifferentials)),
+        w4: JSON.parse(JSON.stringify(emp.w4)),
+        deductions: JSON.parse(JSON.stringify(emp.deductions)),
       } as any)
       .eq("user_id", emp.id);
     setEmployees(prev => prev.map(e => e.id === emp.id ? emp : e));

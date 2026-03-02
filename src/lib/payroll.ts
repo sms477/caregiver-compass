@@ -1,14 +1,26 @@
-import { Shift, Employee, PayrollLineItem, TaxBreakdown, PayRun, PayPeriod, PayStub } from "@/types";
+import { Shift, Employee, PayrollLineItem, TaxBreakdown, DeductionBreakdown, PayRun, PayPeriod, PayStub } from "@/types";
 
 /* ---- Tax Rate Constants (CA 2024 simplified) ---- */
+// Employee taxes
 const SOCIAL_SECURITY_RATE = 0.062;
 const SOCIAL_SECURITY_WAGE_BASE = 168600;
 const MEDICARE_RATE = 0.0145;
+const MEDICARE_ADDITIONAL_RATE = 0.009; // Additional Medicare over $200k
+const MEDICARE_ADDITIONAL_THRESHOLD = 200000;
 const CA_SDI_RATE = 0.011;
+const LOCAL_TAX_RATE = 0.0; // Placeholder — configurable per jurisdiction
+
+// Employer taxes
+const EMPLOYER_SS_RATE = 0.062;
+const EMPLOYER_MEDICARE_RATE = 0.0145;
+const FUTA_RATE = 0.006; // After credit
+const FUTA_WAGE_BASE = 7000;
+const CA_SUI_RATE = 0.034; // CA employer SUI rate (varies)
+const CA_SUI_WAGE_BASE = 7000;
+
 const OT_MULTIPLIER = 1.5;
 
 function estimateFederalIncomeTax(annualGross: number, filingStatus: string): number {
-  // Simplified 2024 brackets
   const brackets = filingStatus === "married"
     ? [
         { limit: 23200, rate: 0.10 },
@@ -39,7 +51,6 @@ function estimateFederalIncomeTax(annualGross: number, filingStatus: string): nu
 }
 
 function estimateCAIncomeTax(annualGross: number): number {
-  // Simplified CA brackets
   const brackets = [
     { limit: 10412, rate: 0.01 },
     { limit: 24684, rate: 0.02 },
@@ -64,30 +75,92 @@ function estimateCAIncomeTax(annualGross: number): number {
   return tax;
 }
 
-export function calculateTaxes(grossPay: number, employee: Employee): TaxBreakdown {
-  // Annualize for bracket calculation (assume semi-monthly = 24 periods)
-  const annualizedGross = grossPay * 24;
+export function calculateDeductions(employee: Employee): DeductionBreakdown {
+  const preTax = (employee.deductions || [])
+    .filter(d => d.type === "pre_tax")
+    .map(d => ({ label: d.label, amount: d.amount }));
+  const postTax = (employee.deductions || [])
+    .filter(d => d.type === "post_tax")
+    .map(d => ({ label: d.label, amount: d.amount }));
 
-  const annualFederal = estimateFederalIncomeTax(annualizedGross, employee.filingStatus);
-  const federalIncome = Math.max(0, annualFederal / 24);
+  const totalPreTax = preTax.reduce((s, d) => s + d.amount, 0);
+  const totalPostTax = postTax.reduce((s, d) => s + d.amount, 0);
 
-  const socialSecurity = Math.min(grossPay * SOCIAL_SECURITY_RATE, (SOCIAL_SECURITY_WAGE_BASE / 24) * SOCIAL_SECURITY_RATE);
-  const medicare = grossPay * MEDICARE_RATE;
+  return {
+    preTax,
+    postTax,
+    totalPreTax: round(totalPreTax),
+    totalPostTax: round(totalPostTax),
+    totalDeductions: round(totalPreTax + totalPostTax),
+  };
+}
 
+export function calculateTaxes(grossPay: number, employee: Employee, preTaxDeductions: number = 0): TaxBreakdown {
+  // Taxable income = gross minus pre-tax deductions
+  const taxableGross = Math.max(0, grossPay - preTaxDeductions);
+  const annualizedGross = taxableGross * 24; // semi-monthly
+
+  // Federal income tax
+  let federalIncome = 0;
+  if (!employee.w4?.isExempt) {
+    const annualFederal = estimateFederalIncomeTax(annualizedGross, employee.filingStatus);
+    federalIncome = Math.max(0, annualFederal / 24);
+  }
+
+  // W-4 additional withholding
+  const additionalFederal = employee.w4?.additionalWithholding || 0;
+
+  // Social Security (employee)
+  const socialSecurity = Math.min(
+    taxableGross * SOCIAL_SECURITY_RATE,
+    (SOCIAL_SECURITY_WAGE_BASE / 24) * SOCIAL_SECURITY_RATE
+  );
+
+  // Medicare (employee) — includes additional Medicare tax
+  let medicare = taxableGross * MEDICARE_RATE;
+  if (annualizedGross > MEDICARE_ADDITIONAL_THRESHOLD) {
+    const excessPerPeriod = Math.max(0, taxableGross - MEDICARE_ADDITIONAL_THRESHOLD / 24);
+    medicare += excessPerPeriod * MEDICARE_ADDITIONAL_RATE;
+  }
+
+  // CA State income tax
   const annualState = estimateCAIncomeTax(annualizedGross);
   const stateIncome = Math.max(0, annualState / 24);
 
-  const sdi = grossPay * CA_SDI_RATE;
+  // Local tax (placeholder, configurable)
+  const localTax = taxableGross * LOCAL_TAX_RATE;
 
-  const totalTaxes = federalIncome + socialSecurity + medicare + stateIncome + sdi;
+  // CA SDI
+  const sdi = taxableGross * CA_SDI_RATE;
+
+  const totalEmployeeTaxes = federalIncome + additionalFederal + socialSecurity + medicare + stateIncome + localTax + sdi;
+
+  // Employer taxes (calculated on gross, not reduced by pre-tax deductions for SS/Medicare)
+  const employerSocialSecurity = Math.min(
+    grossPay * EMPLOYER_SS_RATE,
+    (SOCIAL_SECURITY_WAGE_BASE / 24) * EMPLOYER_SS_RATE
+  );
+  const employerMedicare = grossPay * EMPLOYER_MEDICARE_RATE;
+  const futa = Math.min(grossPay, FUTA_WAGE_BASE / 24) * FUTA_RATE;
+  const sui = Math.min(grossPay, CA_SUI_WAGE_BASE / 24) * CA_SUI_RATE;
+  const totalEmployerTaxes = employerSocialSecurity + employerMedicare + futa + sui;
 
   return {
     federalIncome: round(federalIncome),
+    additionalFederal: round(additionalFederal),
     socialSecurity: round(socialSecurity),
     medicare: round(medicare),
     stateIncome: round(stateIncome),
+    localTax: round(localTax),
     sdi: round(sdi),
-    totalTaxes: round(totalTaxes),
+    totalEmployeeTaxes: round(totalEmployeeTaxes),
+    employerSocialSecurity: round(employerSocialSecurity),
+    employerMedicare: round(employerMedicare),
+    futa: round(futa),
+    sui: round(sui),
+    totalEmployerTaxes: round(totalEmployerTaxes),
+    // Legacy compat — totalTaxes = employee portion only (affects net pay)
+    totalTaxes: round(totalEmployeeTaxes),
   };
 }
 
@@ -95,9 +168,8 @@ export function calculatePayrollLineItem(
   employee: Employee,
   shifts: Shift[]
 ): PayrollLineItem {
-  // Derive effective hourly rate
   const effectiveRate = employee.payType === "salaried"
-    ? employee.annualSalary / 2080  // 40hrs × 52wks
+    ? employee.annualSalary / 2080
     : employee.hourlyRate;
 
   let regularHours = 0;
@@ -131,10 +203,9 @@ export function calculatePayrollLineItem(
       }
     }
 
-    // Shift differentials — apply each configured differential to all hours in this shift
     if (employee.shiftDifferentials?.length > 0) {
       for (const diff of employee.shiftDifferentials) {
-        const extraMultiplier = diff.multiplier - 1; // e.g. 0.10 for a 1.10x multiplier
+        const extraMultiplier = diff.multiplier - 1;
         shiftDifferentialPay += hoursWorked * effectiveRate * extraMultiplier;
       }
     }
@@ -144,8 +215,7 @@ export function calculatePayrollLineItem(
 
   let grossPay: number;
   if (employee.payType === "salaried") {
-    // Salaried: base is per-period salary, plus OT and adjustments at derived rate
-    const perPeriodSalary = employee.annualSalary / 24; // semi-monthly
+    const perPeriodSalary = employee.annualSalary / 24;
     const otPay = overtimeHours * effectiveRate * OT_MULTIPLIER;
     const mealPay = mealPenaltyHours * effectiveRate;
     const sleepDed = sleepDeductionHours * effectiveRate;
@@ -160,8 +230,14 @@ export function calculatePayrollLineItem(
     );
   }
 
-  const taxes = calculateTaxes(grossPay, employee);
-  const netPay = round(grossPay - taxes.totalTaxes);
+  // Calculate deductions
+  const deductions = calculateDeductions(employee);
+
+  // Calculate taxes (pre-tax deductions reduce taxable income)
+  const taxes = calculateTaxes(grossPay, employee, deductions.totalPreTax);
+
+  // Net = gross - employee taxes - all deductions
+  const netPay = round(grossPay - taxes.totalTaxes - deductions.totalDeductions);
 
   return {
     employeeId: employee.id,
@@ -176,6 +252,7 @@ export function calculatePayrollLineItem(
     grossHours: round(grossHours),
     grossPay,
     taxes,
+    deductions,
     netPay,
     shifts,
   };
@@ -195,7 +272,7 @@ export function buildPayRun(
   const lineItems = employees.map(emp => {
     const empShifts = periodShifts.filter(s => s.caregiverId === emp.id);
     return calculatePayrollLineItem(emp, empShifts);
-  }).filter(li => li.grossHours > 0);
+  }).filter(li => li.grossHours > 0 || li.grossPay > 0);
 
   const totalGrossPay = round(lineItems.reduce((s, li) => s + li.grossPay, 0));
   const totalTaxes = round(lineItems.reduce((s, li) => s + li.taxes.totalTaxes, 0));
