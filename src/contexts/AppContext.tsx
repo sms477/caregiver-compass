@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
-import { Shift, ADLReport, EMARRecord, SleepInterruption, UserRole, Employee, PayRun, PayStub } from "@/types";
+import { Shift, ADLReport, EMARRecord, SleepInterruption, UserRole, Employee, PayRun, PayStub, GeoLocation } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 
@@ -11,7 +11,7 @@ interface AppState {
   shifts: Shift[];
   activeShift: Shift | null;
   clockIn: (is24Hour: boolean) => void;
-  clockOut: (mealBreakTaken: boolean, mealBreakReason: string | null) => void;
+  clockOut: (mealBreakTaken: boolean, mealBreakReason: string | null, secondMealBreakTaken?: boolean | null, secondMealBreakReason?: string | null) => void;
   startSleep: () => void;
   endSleep: () => void;
   logSleepInterruption: (reason: string) => void;
@@ -52,9 +52,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     caregiverName: row.caregiver_name,
     clockIn: new Date(row.clock_in),
     clockOut: row.clock_out ? new Date(row.clock_out) : null,
+    clockInLocation: row.clock_in_location || null,
+    clockOutLocation: row.clock_out_location || null,
     is24Hour: row.is_24_hour,
     mealBreakTaken: row.meal_break_taken,
     mealBreakReason: row.meal_break_reason,
+    secondMealBreakTaken: row.second_meal_break_taken ?? null,
+    secondMealBreakReason: row.second_meal_break_reason ?? null,
     sleepStart: row.sleep_start ? new Date(row.sleep_start) : null,
     sleepEnd: row.sleep_end ? new Date(row.sleep_end) : null,
     sleepInterruptions: (row.sleep_interruptions || []).map((si: any) => ({
@@ -75,14 +79,18 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       .from("shifts")
       .update({
         clock_out: shift.clockOut?.toISOString() || null,
+        clock_in_location: shift.clockInLocation ? JSON.parse(JSON.stringify(shift.clockInLocation)) as Json : null,
+        clock_out_location: shift.clockOutLocation ? JSON.parse(JSON.stringify(shift.clockOutLocation)) as Json : null,
         meal_break_taken: shift.mealBreakTaken,
         meal_break_reason: shift.mealBreakReason,
+        second_meal_break_taken: shift.secondMealBreakTaken,
+        second_meal_break_reason: shift.secondMealBreakReason,
         sleep_start: shift.sleepStart?.toISOString() || null,
         sleep_end: shift.sleepEnd?.toISOString() || null,
         sleep_interruptions: JSON.parse(JSON.stringify(shift.sleepInterruptions)) as Json,
         adl_reports: JSON.parse(JSON.stringify(shift.adlReports)) as Json,
         emar_records: JSON.parse(JSON.stringify(shift.emarRecords)) as Json,
-      })
+      } as any)
       .eq("id", shift.id);
   };
 
@@ -216,7 +224,26 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const caregiverName = employees.find(c => c.id === currentCaregiverId)?.name || "Unknown";
 
+  // Helper: get current GPS position
+  const getGeoLocation = (): Promise<GeoLocation | null> => {
+    return new Promise((resolve) => {
+      if (!navigator.geolocation) { resolve(null); return; }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          accuracy: pos.coords.accuracy,
+          timestamp: pos.timestamp,
+        }),
+        () => resolve(null),
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    });
+  };
+
   const clockIn = useCallback(async (is24Hour: boolean) => {
+    const location = await getGeoLocation();
+
     const { data, error } = await supabase
       .from("shifts")
       .insert({
@@ -224,7 +251,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         caregiver_name: caregiverName,
         clock_in: new Date().toISOString(),
         is_24_hour: is24Hour,
-      })
+        clock_in_location: location ? (JSON.parse(JSON.stringify(location)) as Json) : null,
+      } as any)
       .select()
       .single();
 
@@ -233,9 +261,18 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [currentCaregiverId, caregiverName]);
 
-  const clockOut = useCallback(async (mealBreakTaken: boolean, mealBreakReason: string | null) => {
+  const clockOut = useCallback(async (mealBreakTaken: boolean, mealBreakReason: string | null, secondMealBreakTaken?: boolean | null, secondMealBreakReason?: string | null) => {
     if (!activeShift) return;
-    const completed: Shift = { ...activeShift, clockOut: new Date(), mealBreakTaken, mealBreakReason };
+    const location = await getGeoLocation();
+    const completed: Shift = {
+      ...activeShift,
+      clockOut: new Date(),
+      clockOutLocation: location,
+      mealBreakTaken,
+      mealBreakReason,
+      secondMealBreakTaken: secondMealBreakTaken ?? null,
+      secondMealBreakReason: secondMealBreakReason ?? null,
+    };
     await syncShiftToDB(completed);
     setShifts(prev => [completed, ...prev]);
     setActiveShift(null);

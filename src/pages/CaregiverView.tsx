@@ -4,7 +4,8 @@ import { useResidents, DBResident } from "@/hooks/useResidents";
 import { ADLReport } from "@/types";
 import {
   Clock, LogOut, Moon, Sun, AlertTriangle, Check, Pill,
-  ChevronLeft, ClipboardList, Activity, ArrowLeft, History, Receipt, FileText
+  ChevronLeft, ClipboardList, Activity, ArrowLeft, History, Receipt, FileText,
+  MapPin
 } from "lucide-react";
 import { toast } from "sonner";
 import MyPayStubs from "@/components/caregiver/MyPayStubs";
@@ -23,10 +24,15 @@ const CaregiverView = () => {
 
   const [tab, setTab] = useState<Tab>("clock");
   const [showMealPrompt, setShowMealPrompt] = useState(false);
+  const [showSecondMealPrompt, setShowSecondMealPrompt] = useState(false);
   const [showClockInOptions, setShowClockInOptions] = useState(false);
   const [mealReason, setMealReason] = useState("");
+  const [secondMealReason, setSecondMealReason] = useState("");
   const [wakeReason, setWakeReason] = useState("");
   const [showWakePrompt, setShowWakePrompt] = useState(false);
+  // Store first meal answers while asking second
+  const [firstMealTaken, setFirstMealTaken] = useState(false);
+  const [firstMealReason, setFirstMealReason] = useState<string | null>(null);
 
   const { employees } = useApp();
   
@@ -45,6 +51,10 @@ const CaregiverView = () => {
 
   const handleClockOutAttempt = () => setShowMealPrompt(true);
 
+  // Check if shift is 10+ hours (requires second meal break)
+  const shiftHours = activeShift ? (Date.now() - new Date(activeShift.clockIn).getTime()) / 3600000 : 0;
+  const requiresSecondMeal = shiftHours >= 10;
+
   const formatDuration = (ms: number) => {
     const totalSeconds = Math.floor(ms / 1000);
     const h = Math.floor(totalSeconds / 3600);
@@ -56,27 +66,53 @@ const CaregiverView = () => {
   };
 
   const handleMealResponse = async (taken: boolean) => {
-    const clockInTime = clockInTimeRef.current;
-    const shouldClockOut = taken || !!mealReason;
-    
-    if (!shouldClockOut) return;
+    const shouldProceed = taken || !!mealReason;
+    if (!shouldProceed) return;
 
-    // Capture summary before state clears
+    const meal1Taken = taken;
+    const meal1Reason = taken ? null : mealReason;
+
+    // If shift is 10+ hours, ask about second meal break
+    if (requiresSecondMeal) {
+      setFirstMealTaken(meal1Taken);
+      setFirstMealReason(meal1Reason);
+      setShowMealPrompt(false);
+      setMealReason("");
+      setShowSecondMealPrompt(true);
+      return;
+    }
+
+    await finalizeClockOut(meal1Taken, meal1Reason, null, null);
+  };
+
+  const handleSecondMealResponse = async (taken: boolean) => {
+    const shouldProceed = taken || !!secondMealReason;
+    if (!shouldProceed) return;
+
+    await finalizeClockOut(
+      firstMealTaken,
+      firstMealReason,
+      taken,
+      taken ? null : secondMealReason
+    );
+  };
+
+  const finalizeClockOut = async (
+    meal1Taken: boolean, meal1Reason: string | null,
+    meal2Taken: boolean | null, meal2Reason: string | null
+  ) => {
+    const clockInTime = clockInTimeRef.current;
     const duration = clockInTime ? formatDuration(Date.now() - clockInTime.getTime()) : "unknown";
     const name = caregiverName || "Your";
     const adlCount = activeShift?.adlReports?.length || 0;
     const emarCount = activeShift?.emarRecords?.length || 0;
 
-    if (taken) {
-      await clockOut(true, null);
-      setShowMealPrompt(false);
-    } else {
-      await clockOut(false, mealReason);
-      setShowMealPrompt(false);
-      setMealReason("");
-    }
+    await clockOut(meal1Taken, meal1Reason, meal2Taken, meal2Reason);
+    setShowMealPrompt(false);
+    setShowSecondMealPrompt(false);
+    setMealReason("");
+    setSecondMealReason("");
 
-    // Build summary lines
     const parts = [`${name}'s shift of ${duration} has been recorded.`];
     if (adlCount > 0) parts.push(`${adlCount} ADL report(s) logged.`);
     if (emarCount > 0) parts.push(`${emarCount} medication(s) administered.`);
@@ -169,26 +205,70 @@ const CaregiverView = () => {
             onClockIn={(is24) => { clockIn(is24); setTab("clock"); }}
           />
         ) : tab === "clock" ? (
-          <ShiftView
-            elapsed={elapsed}
-            shift={activeShift}
-            isSleeping={!!isSleeping}
-            hasActiveInterruption={!!hasActiveInterruption}
-            showMealPrompt={showMealPrompt}
-            mealReason={mealReason}
-            setMealReason={setMealReason}
-            showWakePrompt={showWakePrompt}
-            wakeReason={wakeReason}
-            setWakeReason={setWakeReason}
-            onClockOut={handleClockOutAttempt}
-            onMealResponse={handleMealResponse}
-            onStartSleep={startSleep}
-            onEndSleep={endSleep}
-            onWakeUp={handleWakeUp}
-            onResumeSleep={resumeSleep}
-            setShowMealPrompt={setShowMealPrompt}
-            setShowWakePrompt={setShowWakePrompt}
-          />
+          <>
+            <ShiftView
+              elapsed={elapsed}
+              shift={activeShift}
+              isSleeping={!!isSleeping}
+              hasActiveInterruption={!!hasActiveInterruption}
+              showMealPrompt={showMealPrompt}
+              mealReason={mealReason}
+              setMealReason={setMealReason}
+              showWakePrompt={showWakePrompt}
+              wakeReason={wakeReason}
+              setWakeReason={setWakeReason}
+              onClockOut={handleClockOutAttempt}
+              onMealResponse={handleMealResponse}
+              onStartSleep={startSleep}
+              onEndSleep={endSleep}
+              onWakeUp={handleWakeUp}
+              onResumeSleep={resumeSleep}
+              setShowMealPrompt={setShowMealPrompt}
+              setShowWakePrompt={setShowWakePrompt}
+            />
+
+            {/* Second Meal Break Attestation */}
+            {showSecondMealPrompt && (
+              <div className="glass-card rounded-xl p-5 space-y-4 border-2 border-warning">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5 text-warning" />
+                  <h3 className="font-display font-bold text-foreground">Second Meal Break</h3>
+                </div>
+                <p className="text-sm text-foreground">
+                  Your shift is over 10 hours. Did you take a <strong>second uninterrupted, 30-minute</strong> meal break?
+                </p>
+                <div className="space-y-2">
+                  <button
+                    onClick={() => handleSecondMealResponse(true)}
+                    className="w-full touch-target rounded-lg bg-success text-success-foreground font-semibold py-3 active:scale-[0.97] transition-transform"
+                  >
+                    <Check className="w-5 h-5 inline mr-2" /> Yes, I took my second break
+                  </button>
+                  <div className="space-y-2">
+                    <input
+                      value={secondMealReason}
+                      onChange={(e) => setSecondMealReason(e.target.value)}
+                      placeholder="Reason second break was missed..."
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm focus:ring-2 focus:ring-warning focus:outline-none"
+                    />
+                    <button
+                      onClick={() => handleSecondMealResponse(false)}
+                      disabled={!secondMealReason}
+                      className="w-full touch-target rounded-lg bg-warning text-warning-foreground font-semibold py-3 disabled:opacity-50 active:scale-[0.97] transition-transform"
+                    >
+                      No — Submit Reason
+                    </button>
+                  </div>
+                </div>
+                <button
+                  onClick={() => { setShowSecondMealPrompt(false); setSecondMealReason(""); }}
+                  className="w-full text-muted-foreground text-sm py-1"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+          </>
         ) : tab === "adl" ? (
           <ADLView onSave={addADLReport} existingReports={activeShift.adlReports} residents={residents} />
         ) : (
@@ -284,6 +364,12 @@ function ShiftView(props: {
             {props.shift.is24Hour ? "24-Hour Shift" : "Standard Shift"} — Active
           </span>
         </div>
+        {props.shift.clockInLocation && (
+          <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
+            <MapPin className="w-3 h-3" />
+            <span>Location verified at clock-in</span>
+          </div>
+        )}
       </div>
 
       {/* Sleep Controls (24-hr only) */}
