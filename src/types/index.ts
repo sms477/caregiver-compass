@@ -235,4 +235,4 @@ export interface PayrollEntry {
   shifts: Shift[];
 }
 
-export type UserRole = 'caregiver' | 'admin';
+export type UserRole = 'caregiver' | 'admin' | 'super_admin';

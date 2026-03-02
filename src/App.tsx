@@ -31,11 +31,13 @@ const AppRouter = () => {
   // Determine available views based on role
   const isAdmin = roles.includes("admin");
   const isReviewer = roles.includes("reviewer");
+  const isSuperAdmin = roles.includes("super_admin");
 
   if (role === "caregiver") return <CaregiverView />;
-  if (role === "admin" && (isAdmin || isReviewer)) return <AdminDashboard />;
+  if (role === "admin" && (isAdmin || isReviewer || isSuperAdmin)) return <AdminDashboard />;
+  if (role === "super_admin" && isSuperAdmin) return <AdminDashboard />;
 
-  return <Index isAdmin={isAdmin} isReviewer={isReviewer} signOut={signOut} />;
+  return <Index isAdmin={isAdmin} isReviewer={isReviewer} isSuperAdmin={isSuperAdmin} signOut={signOut} />;
 };
 
 const App = () => (
