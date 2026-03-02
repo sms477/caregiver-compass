@@ -117,14 +117,18 @@ export interface PaymentBatch {
   items: PaymentItem[];
 }
 
+export type PaymentMethod = 'direct_deposit' | 'manual_check';
+
 export interface PaymentItem {
   id: string;
   batchId: string;
   employeeId: string;
   employeeName: string;
   amount: number;
+  paymentMethod: PaymentMethod;
   bankName: string | null;
   accountLastFour: string | null;
+  checkNumber: string | null;
   status: PaymentItemStatus;
   failureReason: string | null;
 }

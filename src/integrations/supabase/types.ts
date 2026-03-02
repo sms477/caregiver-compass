@@ -156,11 +156,13 @@ export type Database = {
           amount: number
           bank_name: string | null
           batch_id: string
+          check_number: string | null
           created_at: string
           employee_id: string
           employee_name: string
           failure_reason: string | null
           id: string
+          payment_method: string
           status: string
           updated_at: string
         }
@@ -169,11 +171,13 @@ export type Database = {
           amount: number
           bank_name?: string | null
           batch_id: string
+          check_number?: string | null
           created_at?: string
           employee_id: string
           employee_name: string
           failure_reason?: string | null
           id?: string
+          payment_method?: string
           status?: string
           updated_at?: string
         }
@@ -182,11 +186,13 @@ export type Database = {
           amount?: number
           bank_name?: string | null
           batch_id?: string
+          check_number?: string | null
           created_at?: string
           employee_id?: string
           employee_name?: string
           failure_reason?: string | null
           id?: string
+          payment_method?: string
           status?: string
           updated_at?: string
         }
