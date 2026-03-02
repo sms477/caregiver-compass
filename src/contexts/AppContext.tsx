@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
 import { Shift, ADLReport, EMARRecord, SleepInterruption, UserRole, Employee, PayRun, PayStub } from "@/types";
-import { MOCK_SHIFTS, MOCK_EMPLOYEES } from "@/data/mockData";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AppState {
   role: UserRole | null;
@@ -18,6 +18,7 @@ interface AppState {
   addADLReport: (report: ADLReport) => void;
   addEMARRecord: (record: Omit<EMARRecord, "id">) => void;
   employees: Employee[];
+  refreshEmployees: () => Promise<void>;
   updateEmployee: (emp: Employee) => void;
   payRuns: PayRun[];
   addPayRun: (run: PayRun) => void;
@@ -36,14 +37,39 @@ export const useApp = () => {
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [role, setRole] = useState<UserRole | null>(null);
-  const [currentCaregiverId, setCurrentCaregiverId] = useState(MOCK_EMPLOYEES[0].id);
-  const [shifts, setShifts] = useState<Shift[]>(MOCK_SHIFTS);
+  const [currentCaregiverId, setCurrentCaregiverId] = useState("");
+  const [shifts, setShifts] = useState<Shift[]>([]);
   const [activeShift, setActiveShift] = useState<Shift | null>(null);
-  const [employees, setEmployees] = useState<Employee[]>(MOCK_EMPLOYEES);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [payRuns, setPayRuns] = useState<PayRun[]>([]);
   const [payStubs, setPayStubs] = useState<PayStub[]>([]);
 
-  const caregiverName = MOCK_EMPLOYEES.find(c => c.id === currentCaregiverId)?.name || "Unknown";
+  const refreshEmployees = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*");
+    if (data && !error) {
+      const mapped: Employee[] = data.map((p) => ({
+        id: p.user_id,
+        name: p.display_name,
+        email: "", // email is in auth.users, not exposed
+        phone: p.phone || "",
+        hourlyRate: Number(p.hourly_rate) || 0,
+        filingStatus: (p.filing_status as Employee["filingStatus"]) || "single",
+        federalAllowances: p.federal_allowances || 1,
+        stateAllowances: p.state_allowances || 1,
+        startDate: p.start_date || p.created_at,
+        role: p.job_title || "Caregiver",
+      }));
+      setEmployees(mapped);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshEmployees();
+  }, [refreshEmployees]);
+
+  const caregiverName = employees.find(c => c.id === currentCaregiverId)?.name || "Unknown";
 
   const clockIn = useCallback((is24Hour: boolean) => {
     const newShift: Shift = {
@@ -109,7 +135,19 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     setActiveShift(prev => prev ? { ...prev, emarRecords: [...prev.emarRecords, full] } : null);
   }, [activeShift]);
 
-  const updateEmployee = useCallback((emp: Employee) => {
+  const updateEmployee = useCallback(async (emp: Employee) => {
+    // Update in DB
+    await supabase
+      .from("profiles")
+      .update({
+        hourly_rate: emp.hourlyRate,
+        filing_status: emp.filingStatus,
+        federal_allowances: emp.federalAllowances,
+        state_allowances: emp.stateAllowances,
+        phone: emp.phone,
+        job_title: emp.role,
+      })
+      .eq("user_id", emp.id);
     setEmployees(prev => prev.map(e => e.id === emp.id ? emp : e));
   }, []);
 
@@ -133,7 +171,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       clockIn, clockOut,
       startSleep, endSleep, logSleepInterruption, resumeSleep,
       addADLReport, addEMARRecord,
-      employees, updateEmployee,
+      employees, refreshEmployees, updateEmployee,
       payRuns, addPayRun, updatePayRunStatus,
       payStubs, addPayStubs,
     }}>

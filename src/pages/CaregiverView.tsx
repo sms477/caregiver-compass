@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useApp } from "@/contexts/AppContext";
-import { MOCK_RESIDENTS, MOCK_CAREGIVERS } from "@/data/mockData";
+import { MOCK_RESIDENTS } from "@/data/mockData";
 import { ADLReport } from "@/types";
 import {
   Clock, LogOut, Moon, Sun, AlertTriangle, Check, Pill,
@@ -23,7 +23,8 @@ const CaregiverView = () => {
   const [wakeReason, setWakeReason] = useState("");
   const [showWakePrompt, setShowWakePrompt] = useState(false);
 
-  const caregiverName = MOCK_CAREGIVERS.find(c => c.id === currentCaregiverId)?.name || "";
+  const { employees } = useApp();
+  const caregiverName = employees.find(c => c.id === currentCaregiverId)?.name || "";
 
   const isSleeping = activeShift?.sleepStart && !activeShift?.sleepEnd;
   const hasActiveInterruption = activeShift?.sleepInterruptions.some(i => !i.resumeTime);

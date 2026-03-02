@@ -1,5 +1,4 @@
 import { useApp } from "@/contexts/AppContext";
-import { MOCK_CAREGIVERS } from "@/data/mockData";
 import { Shield, Heart, ArrowRight, LogOut } from "lucide-react";
 
 interface IndexProps {
