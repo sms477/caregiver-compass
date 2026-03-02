@@ -51,24 +51,30 @@ const CaregiverView = () => {
     return `${s}s`;
   };
 
-  const handleMealResponse = (taken: boolean) => {
+  const handleMealResponse = async (taken: boolean) => {
     const clockInTime = clockInTimeRef.current;
+    const shouldClockOut = taken || !!mealReason;
+    
+    if (!shouldClockOut) return;
+
+    // Calculate duration before clocking out
+    const duration = clockInTime ? formatDuration(Date.now() - clockInTime.getTime()) : "unknown";
+    const name = caregiverName || "Your";
+
     if (taken) {
-      clockOut(true, null);
+      await clockOut(true, null);
       setShowMealPrompt(false);
-    } else if (mealReason) {
-      clockOut(false, mealReason);
+    } else {
+      await clockOut(false, mealReason);
       setShowMealPrompt(false);
       setMealReason("");
     }
-    // Show confirmation after clock-out
-    if (taken || mealReason) {
-      const duration = clockInTime ? formatDuration(Date.now() - clockInTime.getTime()) : "unknown";
-      toast({
-        title: "✓ Shift logged!",
-        description: `${caregiverName || "Your"} shift of ${duration} has been recorded.`,
-      });
-    }
+
+    // Show toast after clock-out completes
+    toast({
+      title: "✓ Shift logged!",
+      description: `${name} shift of ${duration} has been recorded.`,
+    });
   };
 
   const handleWakeUp = () => {
