@@ -56,13 +56,22 @@ export interface EMARRecord {
 /* ---- Payroll Types ---- */
 
 export type FilingStatus = 'single' | 'married' | 'head_of_household';
+export type PayType = 'hourly' | 'salaried';
+
+export interface ShiftDifferential {
+  label: string;        // e.g. "Night", "Weekend"
+  multiplier: number;   // e.g. 1.10 for 10% extra
+}
 
 export interface Employee {
   id: string;
   name: string;
   email: string;
   phone: string;
-  hourlyRate: number;
+  payType: PayType;
+  hourlyRate: number;         // used for hourly employees (and as derived rate for salaried)
+  annualSalary: number;       // used for salaried employees
+  shiftDifferentials: ShiftDifferential[];
   filingStatus: FilingStatus;
   federalAllowances: number;
   stateAllowances: number;
@@ -82,9 +91,11 @@ export interface TaxBreakdown {
 export interface PayrollLineItem {
   employeeId: string;
   employeeName: string;
+  payType: PayType;
   hourlyRate: number;
   regularHours: number;
   overtimeHours: number;
+  shiftDifferentialPay: number;
   mealPenaltyHours: number;
   sleepDeductionHours: number;
   grossHours: number;

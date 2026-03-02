@@ -231,19 +231,47 @@ const EmployeeProfiles = () => {
                 {/* Details */}
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground">Pay Type</label>
+                    {isEditing ? (
+                      <select
+                        value={editForm?.payType || "hourly"}
+                        onChange={e => setEditForm(prev => prev ? { ...prev, payType: e.target.value as Employee["payType"] } : null)}
+                        className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                      >
+                        <option value="hourly">Hourly</option>
+                        <option value="salaried">Salaried</option>
+                      </select>
+                    ) : (
+                      <p className="font-medium text-foreground capitalize">{data.payType || "hourly"}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1">
                     <label className="text-xs text-muted-foreground flex items-center gap-1">
-                      <DollarSign className="w-3 h-3" /> Pay Rate
+                      <DollarSign className="w-3 h-3" /> {data.payType === "salaried" ? "Annual Salary" : "Hourly Rate"}
                     </label>
                     {isEditing ? (
-                      <input
-                        type="number"
-                        step="0.50"
-                        value={editForm?.hourlyRate}
-                        onChange={e => setEditForm(prev => prev ? { ...prev, hourlyRate: parseFloat(e.target.value) || 0 } : null)}
-                        className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm focus:ring-2 focus:ring-primary focus:outline-none"
-                      />
+                      data.payType === "salaried" ? (
+                        <input
+                          type="number"
+                          step="1000"
+                          value={editForm?.annualSalary}
+                          onChange={e => setEditForm(prev => prev ? { ...prev, annualSalary: parseFloat(e.target.value) || 0 } : null)}
+                          className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                        />
+                      ) : (
+                        <input
+                          type="number"
+                          step="0.50"
+                          value={editForm?.hourlyRate}
+                          onChange={e => setEditForm(prev => prev ? { ...prev, hourlyRate: parseFloat(e.target.value) || 0 } : null)}
+                          className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                        />
+                      )
                     ) : (
-                      <p className="font-semibold text-foreground">{formatCurrency(data.hourlyRate)}/hr</p>
+                      <p className="font-semibold text-foreground">
+                        {data.payType === "salaried" ? formatCurrency(data.annualSalary) + "/yr" : formatCurrency(data.hourlyRate) + "/hr"}
+                      </p>
                     )}
                   </div>
 
@@ -278,6 +306,65 @@ const EmployeeProfiles = () => {
                       <p className="text-foreground">{data.phone || "—"}</p>
                     )}
                   </div>
+                </div>
+
+                {/* Shift Differentials */}
+                <div className="border-t border-border pt-3 space-y-2">
+                  <label className="text-xs text-muted-foreground font-medium">Shift Differentials</label>
+                  {(data.shiftDifferentials || []).length === 0 && !isEditing && (
+                    <p className="text-xs text-muted-foreground italic">None configured</p>
+                  )}
+                  {(data.shiftDifferentials || []).map((diff, idx) => (
+                    <div key={idx} className="flex items-center gap-2 text-sm">
+                      {isEditing ? (
+                        <>
+                          <input
+                            value={diff.label}
+                            onChange={e => {
+                              const diffs = [...(editForm?.shiftDifferentials || [])];
+                              diffs[idx] = { ...diffs[idx], label: e.target.value };
+                              setEditForm(prev => prev ? { ...prev, shiftDifferentials: diffs } : null);
+                            }}
+                            placeholder="Label"
+                            className="w-24 rounded-md border border-border bg-background px-2 py-1 text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                          />
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={diff.multiplier}
+                            onChange={e => {
+                              const diffs = [...(editForm?.shiftDifferentials || [])];
+                              diffs[idx] = { ...diffs[idx], multiplier: parseFloat(e.target.value) || 1 };
+                              setEditForm(prev => prev ? { ...prev, shiftDifferentials: diffs } : null);
+                            }}
+                            className="w-20 rounded-md border border-border bg-background px-2 py-1 text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                          />
+                          <button
+                            onClick={() => {
+                              const diffs = (editForm?.shiftDifferentials || []).filter((_, i) => i !== idx);
+                              setEditForm(prev => prev ? { ...prev, shiftDifferentials: diffs } : null);
+                            }}
+                            className="text-destructive text-xs"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </>
+                      ) : (
+                        <span className="text-foreground">{diff.label}: <span className="font-medium">{((diff.multiplier - 1) * 100).toFixed(0)}% extra</span></span>
+                      )}
+                    </div>
+                  ))}
+                  {isEditing && (
+                    <button
+                      onClick={() => {
+                        const diffs = [...(editForm?.shiftDifferentials || []), { label: "", multiplier: 1.10 }];
+                        setEditForm(prev => prev ? { ...prev, shiftDifferentials: diffs } : null);
+                      }}
+                      className="text-xs text-primary font-medium"
+                    >
+                      + Add Differential
+                    </button>
+                  )}
                 </div>
 
                 {/* Tax Info */}
