@@ -100,10 +100,12 @@ const AdminDashboard = () => {
       <aside className="w-64 bg-card border-r border-border hidden lg:flex flex-col shrink-0">
         <div className="p-5 border-b border-border">
           <div className="flex items-center gap-2">
-            <Shield className="w-6 h-6 text-primary" />
-            <span className="font-display font-bold text-foreground text-lg">CareGuard</span>
+            <div className="w-8 h-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center">
+              <span className="text-sm font-display font-black">K</span>
+            </div>
+            <span className="font-display font-bold text-foreground text-lg tracking-tight">kova</span>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">Payroll & Compliance</p>
+          <p className="text-xs text-muted-foreground mt-1">Operations & Compliance</p>
         </div>
 
         <nav className="flex-1 p-3 space-y-1">
@@ -143,7 +145,7 @@ const AdminDashboard = () => {
           <button onClick={() => setRole(null)} className="text-muted-foreground">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <span className="font-display font-bold text-foreground">CareGuard Admin</span>
+          <span className="font-display font-bold text-foreground tracking-tight">kova</span>
           <div className="w-5" />
         </div>
         <div className="flex overflow-x-auto px-2 pb-2 gap-1">

@@ -33,9 +33,9 @@ const AuthPage = () => {
         {/* Brand */}
         <div className="text-center space-y-2">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary text-primary-foreground mb-4">
-            <Shield className="w-8 h-8" />
+            <span className="text-2xl font-display font-black tracking-tight">K</span>
           </div>
-          <h1 className="text-3xl font-display font-bold text-foreground">CareGuard</h1>
+          <h1 className="text-3xl font-display font-bold text-foreground tracking-tight">kova</h1>
           <p className="text-muted-foreground text-sm">
             Sign in to your account
           </p>

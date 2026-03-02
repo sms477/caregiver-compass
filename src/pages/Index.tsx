@@ -1,5 +1,5 @@
 import { useApp } from "@/contexts/AppContext";
-import { Shield, Heart, ArrowRight, LogOut } from "lucide-react";
+import { Heart, ArrowRight, LogOut } from "lucide-react";
 
 interface IndexProps {
   isAdmin?: boolean;
@@ -16,11 +16,11 @@ const Index = ({ isAdmin, isReviewer, signOut }: IndexProps) => {
         {/* Logo / Brand */}
         <div className="text-center space-y-2">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary text-primary-foreground mb-4">
-            <Shield className="w-8 h-8" />
+            <span className="text-2xl font-display font-black tracking-tight">K</span>
           </div>
-          <h1 className="text-3xl font-display font-bold text-foreground">CareGuard</h1>
+          <h1 className="text-3xl font-display font-bold text-foreground tracking-tight">kova</h1>
           <p className="text-muted-foreground text-sm">
-            RCFE Operations & Compliance
+            Care Operations & Compliance
           </p>
         </div>
 
@@ -53,8 +53,8 @@ const Index = ({ isAdmin, isReviewer, signOut }: IndexProps) => {
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center">
-                    <Shield className="w-6 h-6 text-accent" />
+                   <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center">
+                     <span className="text-lg font-display font-black text-accent">K</span>
                   </div>
                   <div>
                     <h2 className="text-lg font-semibold text-foreground">Administrator</h2>
@@ -74,8 +74,8 @@ const Index = ({ isAdmin, isReviewer, signOut }: IndexProps) => {
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <Shield className="w-6 h-6 text-primary" />
+                   <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                     <span className="text-lg font-display font-black text-primary">K</span>
                   </div>
                   <div>
                     <h2 className="text-lg font-semibold text-foreground">Reviewer</h2>

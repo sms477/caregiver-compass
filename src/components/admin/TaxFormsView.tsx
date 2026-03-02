@@ -178,7 +178,7 @@ const TaxFormsView = () => {
         });
 
         const w2Data: W2Data = {
-          employerName: "CareGuard LLC", employerEIN: "XX-XXXXXXX", employerAddress: "California, USA",
+          employerName: "Kova LLC", employerEIN: "XX-XXXXXXX", employerAddress: "California, USA",
           employeeName: empName, employeeSSNLast4: "XXXX", employeeAddress: "",
           wagesTipsOther: totalGross - preTaxDed, federalTaxWithheld: federalTax,
           socialSecurityWages: totalGross, socialSecurityTax: ssTax,
