@@ -67,6 +67,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     refreshEmployees();
+    // Set currentCaregiverId from the logged-in user
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user?.id) {
+        setCurrentCaregiverId(session.user.id);
+      }
+    });
   }, [refreshEmployees]);
 
   const caregiverName = employees.find(c => c.id === currentCaregiverId)?.name || "Unknown";
