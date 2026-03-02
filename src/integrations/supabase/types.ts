@@ -367,6 +367,51 @@ export type Database = {
         }
         Relationships: []
       }
+      tax_forms: {
+        Row: {
+          created_at: string
+          distributed_at: string | null
+          employee_id: string
+          employee_name: string
+          form_data: Json
+          form_type: string
+          generated_at: string
+          generated_by: string
+          id: string
+          status: string
+          tax_year: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          distributed_at?: string | null
+          employee_id: string
+          employee_name: string
+          form_data?: Json
+          form_type?: string
+          generated_at?: string
+          generated_by: string
+          id?: string
+          status?: string
+          tax_year: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          distributed_at?: string | null
+          employee_id?: string
+          employee_name?: string
+          form_data?: Json
+          form_type?: string
+          generated_at?: string
+          generated_by?: string
+          id?: string
+          status?: string
+          tax_year?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string

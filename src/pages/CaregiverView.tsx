@@ -4,12 +4,13 @@ import { MOCK_RESIDENTS } from "@/data/mockData";
 import { ADLReport } from "@/types";
 import {
   Clock, LogOut, Moon, Sun, AlertTriangle, Check, Pill,
-  ChevronLeft, ClipboardList, Activity, ArrowLeft, History, Receipt
+  ChevronLeft, ClipboardList, Activity, ArrowLeft, History, Receipt, FileText
 } from "lucide-react";
 import { toast } from "sonner";
 import MyPayStubs from "@/components/caregiver/MyPayStubs";
+import MyTaxForms from "@/components/caregiver/MyTaxForms";
 
-type Tab = "clock" | "adl" | "emar" | "history" | "paystubs";
+type Tab = "clock" | "adl" | "emar" | "history" | "paystubs" | "taxforms";
 
 const CaregiverView = () => {
   const {
@@ -132,6 +133,7 @@ const CaregiverView = () => {
             { key: "emar" as Tab, icon: Pill, label: "eMAR" },
           ] : []),
           { key: "paystubs" as Tab, icon: Receipt, label: "Pay Stubs" },
+          { key: "taxforms" as Tab, icon: FileText, label: "Tax Forms" },
           { key: "history" as Tab, icon: History, label: "History" },
         ]).map(({ key, icon: Icon, label }) => (
           <button
@@ -151,6 +153,8 @@ const CaregiverView = () => {
       <main className="flex-1 p-4 space-y-4 max-w-lg mx-auto w-full">
         {tab === "paystubs" ? (
           <MyPayStubs />
+        ) : tab === "taxforms" ? (
+          <MyTaxForms />
         ) : tab === "history" ? (
           <HistoryView shifts={shifts} />
         ) : !activeShift ? (
