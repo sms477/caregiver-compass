@@ -60,9 +60,9 @@ const AdminDashboard = () => {
   }, [completedShifts]);
 
   const exportCSV = () => {
-    const header = "Employee,Rate,Regular Hrs,OT Hrs,Meal Penalties,Sleep Ded,Gross Pay,Taxes,Net Pay\n";
-    const rows = previewRun.lineItems.map(li =>
-      `${li.employeeName},${li.hourlyRate},${li.regularHours},${li.overtimeHours},${li.mealPenaltyHours},${li.sleepDeductionHours},${li.grossPay},${li.taxes.totalTaxes},${li.netPay}`
+    const header = "Employee,Rate,Regular Hrs,OT Hrs,DT Hrs,Meal Penalties,Sleep Ded,Gross Pay,Taxes,Net Pay\n";
+    const rows = previewRun.lineItems.map((li: any) =>
+      `${li.employeeName},${li.hourlyRate},${li.regularHours},${li.overtimeHours},${li.doubleTimeHours},${li.mealPenaltyHours},${li.sleepDeductionHours},${li.grossPay},${li.taxes.totalTaxes},${li.netPay}`
     ).join("\n");
     const blob = new Blob([header + rows], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -272,6 +272,9 @@ function DashboardView({ previewRun, currentPeriod, completedShifts, complianceA
                       {li.grossHours.toFixed(1)}
                       {li.overtimeHours > 0 && (
                         <span className="text-xs text-muted-foreground ml-1">({li.overtimeHours.toFixed(1)} OT)</span>
+                      )}
+                      {li.doubleTimeHours > 0 && (
+                        <span className="text-xs text-warning ml-1">({li.doubleTimeHours.toFixed(1)} DT)</span>
                       )}
                     </td>
                     <td className="p-3 text-right text-foreground">{formatCurrency(li.grossPay)}</td>

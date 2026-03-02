@@ -19,6 +19,7 @@ const CA_SUI_RATE = 0.034; // CA employer SUI rate (varies)
 const CA_SUI_WAGE_BASE = 7000;
 
 const OT_MULTIPLIER = 1.5;
+const DT_MULTIPLIER = 2.0; // CA double-time
 
 function estimateFederalIncomeTax(annualGross: number, filingStatus: string): number {
   const brackets = filingStatus === "married"
@@ -174,23 +175,83 @@ export function calculatePayrollLineItem(
 
   let regularHours = 0;
   let overtimeHours = 0;
+  let doubleTimeHours = 0;
   let mealPenaltyHours = 0;
   let sleepDeductionHours = 0;
   let shiftDifferentialPay = 0;
 
-  shifts.forEach(s => {
-    if (!s.clockOut) return;
-    const hoursWorked = (new Date(s.clockOut).getTime() - new Date(s.clockIn).getTime()) / 3600000;
+  // Sort shifts by date to detect 7th consecutive day
+  const sortedShifts = [...shifts].filter(s => s.clockOut).sort(
+    (a, b) => new Date(a.clockIn).getTime() - new Date(b.clockIn).getTime()
+  );
 
-    const regular = Math.min(hoursWorked, 8);
-    const ot = Math.max(hoursWorked - 8, 0);
-    regularHours += regular;
-    overtimeHours += ot;
+  // Track weekly hours for weekly OT (>40h)
+  // Group shifts by work-week (Sunday-Saturday)
+  const weekMap = new Map<string, { totalHours: number; consecutiveDays: Set<string> }>();
 
+  sortedShifts.forEach(s => {
+    const clockIn = new Date(s.clockIn);
+    const clockOut = new Date(s.clockOut!);
+    const hoursWorked = (clockOut.getTime() - clockIn.getTime()) / 3600000;
+
+    // Determine work-week key (week starting Sunday)
+    const dayOfWeek = clockIn.getDay();
+    const weekStart = new Date(clockIn);
+    weekStart.setDate(weekStart.getDate() - dayOfWeek);
+    const weekKey = weekStart.toISOString().split("T")[0];
+
+    if (!weekMap.has(weekKey)) {
+      weekMap.set(weekKey, { totalHours: 0, consecutiveDays: new Set() });
+    }
+    const week = weekMap.get(weekKey)!;
+    week.consecutiveDays.add(clockIn.toISOString().split("T")[0]);
+
+    // CA daily OT rules:
+    // - First 8 hours: regular
+    // - 8-12 hours: 1.5x overtime
+    // - Over 12 hours: 2x double-time
+    const is7thDay = week.consecutiveDays.size >= 7;
+
+    let dailyRegular: number;
+    let dailyOT: number;
+    let dailyDT: number;
+
+    if (is7thDay) {
+      // 7th consecutive day: first 8 hrs at 1.5x, over 8 at 2x
+      dailyRegular = 0;
+      dailyOT = Math.min(hoursWorked, 8);
+      dailyDT = Math.max(hoursWorked - 8, 0);
+    } else {
+      dailyRegular = Math.min(hoursWorked, 8);
+      dailyOT = Math.min(Math.max(hoursWorked - 8, 0), 4); // 8-12 hrs
+      dailyDT = Math.max(hoursWorked - 12, 0); // >12 hrs
+    }
+
+    // Weekly OT: hours over 40 in a week that aren't already daily OT/DT
+    const prevWeekHours = week.totalHours;
+    week.totalHours += hoursWorked;
+
+    // If weekly hours exceed 40 and we have regular hours, convert to OT
+    if (prevWeekHours < 40 && week.totalHours > 40 && !is7thDay) {
+      const weeklyOTHours = Math.min(dailyRegular, week.totalHours - 40);
+      dailyRegular -= weeklyOTHours;
+      dailyOT += weeklyOTHours;
+    } else if (prevWeekHours >= 40 && !is7thDay) {
+      // All "regular" hours are actually OT
+      dailyOT += dailyRegular;
+      dailyRegular = 0;
+    }
+
+    regularHours += dailyRegular;
+    overtimeHours += dailyOT;
+    doubleTimeHours += dailyDT;
+
+    // Meal break penalty (CA: 1 hr pay if not provided within first 5 hrs)
     if (s.mealBreakTaken === false) {
       mealPenaltyHours += 1;
     }
 
+    // Sleep time deduction for 24-hour shifts
     if (s.is24Hour && s.sleepStart && s.sleepEnd) {
       const sleepMs = new Date(s.sleepEnd).getTime() - new Date(s.sleepStart).getTime();
       const interruptMs = s.sleepInterruptions.reduce((sum, i) => {
@@ -203,6 +264,7 @@ export function calculatePayrollLineItem(
       }
     }
 
+    // Shift differentials
     if (employee.shiftDifferentials?.length > 0) {
       for (const diff of employee.shiftDifferentials) {
         const extraMultiplier = diff.multiplier - 1;
@@ -211,19 +273,21 @@ export function calculatePayrollLineItem(
     }
   });
 
-  const grossHours = regularHours + overtimeHours + mealPenaltyHours - sleepDeductionHours;
+  const grossHours = regularHours + overtimeHours + doubleTimeHours + mealPenaltyHours - sleepDeductionHours;
 
   let grossPay: number;
   if (employee.payType === "salaried") {
     const perPeriodSalary = employee.annualSalary / 24;
     const otPay = overtimeHours * effectiveRate * OT_MULTIPLIER;
+    const dtPay = doubleTimeHours * effectiveRate * DT_MULTIPLIER;
     const mealPay = mealPenaltyHours * effectiveRate;
     const sleepDed = sleepDeductionHours * effectiveRate;
-    grossPay = round(perPeriodSalary + otPay + mealPay - sleepDed + shiftDifferentialPay);
+    grossPay = round(perPeriodSalary + otPay + dtPay + mealPay - sleepDed + shiftDifferentialPay);
   } else {
     grossPay = round(
       (regularHours * effectiveRate) +
       (overtimeHours * effectiveRate * OT_MULTIPLIER) +
+      (doubleTimeHours * effectiveRate * DT_MULTIPLIER) +
       (mealPenaltyHours * effectiveRate) -
       (sleepDeductionHours * effectiveRate) +
       shiftDifferentialPay
@@ -246,6 +310,7 @@ export function calculatePayrollLineItem(
     hourlyRate: round(effectiveRate),
     regularHours: round(regularHours),
     overtimeHours: round(overtimeHours),
+    doubleTimeHours: round(doubleTimeHours),
     shiftDifferentialPay: round(shiftDifferentialPay),
     mealPenaltyHours: round(mealPenaltyHours),
     sleepDeductionHours: round(sleepDeductionHours),
