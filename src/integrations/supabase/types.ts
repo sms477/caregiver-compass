@@ -14,6 +14,127 @@ export type Database = {
   }
   public: {
     Tables: {
+      pay_runs: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string
+          id: string
+          line_items: Json
+          pay_period: Json
+          status: string
+          total_gross_pay: number
+          total_net_pay: number
+          total_taxes: number
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          line_items?: Json
+          pay_period: Json
+          status?: string
+          total_gross_pay?: number
+          total_net_pay?: number
+          total_taxes?: number
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          line_items?: Json
+          pay_period?: Json
+          status?: string
+          total_gross_pay?: number
+          total_net_pay?: number
+          total_taxes?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pay_stubs: {
+        Row: {
+          created_at: string
+          employee_id: string
+          employee_name: string
+          id: string
+          line_item: Json
+          paid_at: string
+          pay_period: Json
+          pay_run_id: string
+        }
+        Insert: {
+          created_at?: string
+          employee_id: string
+          employee_name: string
+          id?: string
+          line_item: Json
+          paid_at?: string
+          pay_period: Json
+          pay_run_id: string
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string
+          employee_name?: string
+          id?: string
+          line_item?: Json
+          paid_at?: string
+          pay_period?: Json
+          pay_run_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pay_stubs_pay_run_id_fkey"
+            columns: ["pay_run_id"]
+            isOneToOne: false
+            referencedRelation: "pay_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_audit_log: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          id: string
+          pay_run_id: string | null
+          performed_by: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          pay_run_id?: string | null
+          performed_by: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          pay_run_id?: string | null
+          performed_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_audit_log_pay_run_id_fkey"
+            columns: ["pay_run_id"]
+            isOneToOne: false
+            referencedRelation: "pay_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           annual_salary: number | null

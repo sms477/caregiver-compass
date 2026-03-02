@@ -37,12 +37,13 @@ const PayRunWizard = ({ onComplete, onCancel }: Props) => {
     setStep("review-hours");
   };
 
-  const handleApprove = () => {
+  const handleApprove = async () => {
     if (!payRun) return;
     const approved: PayRun = { ...payRun, status: "approved", approvedAt: new Date() };
-    addPayRun(approved);
-    const stubs = generatePayStubs(approved);
-    addPayStubs(stubs);
+    const savedRun = await addPayRun(approved);
+    const runForStubs = savedRun || approved;
+    const stubs = generatePayStubs(runForStubs);
+    await addPayStubs(stubs);
     setStep("confirm");
   };
 
