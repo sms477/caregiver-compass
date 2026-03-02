@@ -11,7 +11,7 @@ import {
   FileText, Users, TrendingUp, Shield, Play, Receipt,
   LayoutDashboard, UserCircle, ChevronRight, Building2, FileCheck,
   CalendarIcon, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon,
-  Home
+  Home, History
 } from "lucide-react";
 import { formatCurrency } from "@/lib/payroll";
 import { buildPayRun } from "@/lib/payroll";
@@ -24,8 +24,9 @@ import PaymentsView from "@/components/admin/PaymentsView";
 import TaxFormsView from "@/components/admin/TaxFormsView";
 import ResidentsManager from "@/components/admin/ResidentsManager";
 import IncidentsView from "@/components/admin/IncidentsView";
+import AuditTrailView from "@/components/admin/AuditTrailView";
 
-type AdminTab = "dashboard" | "run-payroll" | "employees" | "residents" | "incidents" | "pay-stubs" | "payments" | "tax-forms" | "reports" | "shifts";
+type AdminTab = "dashboard" | "run-payroll" | "employees" | "residents" | "incidents" | "pay-stubs" | "payments" | "tax-forms" | "reports" | "shifts" | "audit-trail";
 
 const NAV_ITEMS: { key: AdminTab; label: string; icon: React.ElementType }[] = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -38,6 +39,7 @@ const NAV_ITEMS: { key: AdminTab; label: string; icon: React.ElementType }[] = [
   { key: "tax-forms", label: "Tax Forms", icon: FileCheck },
   { key: "reports", label: "Reports", icon: TrendingUp },
   { key: "shifts", label: "Shift Log", icon: FileText },
+  { key: "audit-trail", label: "Audit Trail", icon: History },
 ];
 
 const AdminDashboard = () => {
@@ -193,6 +195,7 @@ const AdminDashboard = () => {
           {tab === "payments" && <PaymentsView />}
           {tab === "tax-forms" && <TaxFormsView />}
           {tab === "reports" && <ReportsCenter />}
+          {tab === "audit-trail" && <AuditTrailView />}
 
           {tab === "shifts" && (
             <ShiftLogView shifts={completedShifts} />
