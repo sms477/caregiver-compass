@@ -105,6 +105,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         stateAllowances: p.state_allowances || 1,
         w4: ((p as any).w4 as Employee["w4"]) || { additionalWithholding: 0, isExempt: false },
         deductions: ((p as any).deductions as Employee["deductions"]) || [],
+        bankInfo: (p as any).bank_name ? {
+          bankName: (p as any).bank_name,
+          routingNumber: (p as any).bank_routing_number || "",
+          accountNumber: (p as any).bank_account_number || "",
+          accountType: ((p as any).bank_account_type as "checking" | "savings") || "checking",
+        } : null,
         startDate: p.start_date || p.created_at,
         role: p.job_title || "Caregiver",
       }));
@@ -297,6 +303,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         shift_differentials: JSON.parse(JSON.stringify(emp.shiftDifferentials)),
         w4: JSON.parse(JSON.stringify(emp.w4)),
         deductions: JSON.parse(JSON.stringify(emp.deductions)),
+        bank_name: emp.bankInfo?.bankName || null,
+        bank_routing_number: emp.bankInfo?.routingNumber || null,
+        bank_account_number: emp.bankInfo?.accountNumber || null,
+        bank_account_type: emp.bankInfo?.accountType || 'checking',
       } as any)
       .eq("user_id", emp.id);
     setEmployees(prev => prev.map(e => e.id === emp.id ? emp : e));

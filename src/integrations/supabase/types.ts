@@ -100,6 +100,106 @@ export type Database = {
           },
         ]
       }
+      payment_batches: {
+        Row: {
+          created_at: string
+          id: string
+          initiated_at: string
+          initiated_by: string
+          notes: string | null
+          pay_run_id: string
+          payment_count: number
+          processed_at: string | null
+          status: string
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          initiated_at?: string
+          initiated_by: string
+          notes?: string | null
+          pay_run_id: string
+          payment_count?: number
+          processed_at?: string | null
+          status?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          initiated_at?: string
+          initiated_by?: string
+          notes?: string | null
+          pay_run_id?: string
+          payment_count?: number
+          processed_at?: string | null
+          status?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_batches_pay_run_id_fkey"
+            columns: ["pay_run_id"]
+            isOneToOne: false
+            referencedRelation: "pay_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_items: {
+        Row: {
+          account_last_four: string | null
+          amount: number
+          bank_name: string | null
+          batch_id: string
+          created_at: string
+          employee_id: string
+          employee_name: string
+          failure_reason: string | null
+          id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          account_last_four?: string | null
+          amount: number
+          bank_name?: string | null
+          batch_id: string
+          created_at?: string
+          employee_id: string
+          employee_name: string
+          failure_reason?: string | null
+          id?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          account_last_four?: string | null
+          amount?: number
+          bank_name?: string | null
+          batch_id?: string
+          created_at?: string
+          employee_id?: string
+          employee_name?: string
+          failure_reason?: string | null
+          id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_items_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "payment_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payroll_audit_log: {
         Row: {
           action: string
@@ -138,6 +238,10 @@ export type Database = {
       profiles: {
         Row: {
           annual_salary: number | null
+          bank_account_number: string | null
+          bank_account_type: string | null
+          bank_name: string | null
+          bank_routing_number: string | null
           created_at: string
           deductions: Json
           display_name: string
@@ -157,6 +261,10 @@ export type Database = {
         }
         Insert: {
           annual_salary?: number | null
+          bank_account_number?: string | null
+          bank_account_type?: string | null
+          bank_name?: string | null
+          bank_routing_number?: string | null
           created_at?: string
           deductions?: Json
           display_name: string
@@ -176,6 +284,10 @@ export type Database = {
         }
         Update: {
           annual_salary?: number | null
+          bank_account_number?: string | null
+          bank_account_type?: string | null
+          bank_name?: string | null
+          bank_routing_number?: string | null
           created_at?: string
           deductions?: Json
           display_name?: string

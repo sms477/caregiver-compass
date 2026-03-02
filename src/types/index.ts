@@ -75,6 +75,13 @@ export interface W4Config {
   isExempt: boolean;               // W-4 exempt from federal withholding
 }
 
+export interface BankInfo {
+  bankName: string;
+  routingNumber: string;
+  accountNumber: string;
+  accountType: 'checking' | 'savings';
+}
+
 export interface Employee {
   id: string;
   name: string;
@@ -89,8 +96,37 @@ export interface Employee {
   stateAllowances: number;
   w4: W4Config;
   deductions: Deduction[];
+  bankInfo: BankInfo | null;
   startDate: string;
   role: string;
+}
+
+export type PaymentBatchStatus = 'pending' | 'processing' | 'completed' | 'failed';
+export type PaymentItemStatus = 'pending' | 'processing' | 'completed' | 'failed';
+
+export interface PaymentBatch {
+  id: string;
+  payRunId: string;
+  status: PaymentBatchStatus;
+  totalAmount: number;
+  paymentCount: number;
+  initiatedBy: string;
+  initiatedAt: Date;
+  processedAt: Date | null;
+  notes: string | null;
+  items: PaymentItem[];
+}
+
+export interface PaymentItem {
+  id: string;
+  batchId: string;
+  employeeId: string;
+  employeeName: string;
+  amount: number;
+  bankName: string | null;
+  accountLastFour: string | null;
+  status: PaymentItemStatus;
+  failureReason: string | null;
 }
 
 export interface TaxBreakdown {
