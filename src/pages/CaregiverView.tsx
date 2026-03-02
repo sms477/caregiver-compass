@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useApp } from "@/contexts/AppContext";
-import { MOCK_RESIDENTS } from "@/data/mockData";
+import { useResidents, DBResident } from "@/hooks/useResidents";
 import { ADLReport } from "@/types";
 import {
   Clock, LogOut, Moon, Sun, AlertTriangle, Check, Pill,
@@ -18,6 +18,7 @@ const CaregiverView = () => {
     startSleep, endSleep, logSleepInterruption, resumeSleep,
     addADLReport, addEMARRecord, currentCaregiverId,
   } = useApp();
+  const { residents } = useResidents();
 
   const [tab, setTab] = useState<Tab>("clock");
   const [showMealPrompt, setShowMealPrompt] = useState(false);
@@ -156,7 +157,7 @@ const CaregiverView = () => {
         ) : tab === "taxforms" ? (
           <MyTaxForms />
         ) : tab === "history" ? (
-          <HistoryView shifts={shifts} />
+          <HistoryView shifts={shifts} residents={residents} />
         ) : !activeShift ? (
           <ClockInView
             showOptions={showClockInOptions}
@@ -185,12 +186,13 @@ const CaregiverView = () => {
             setShowWakePrompt={setShowWakePrompt}
           />
         ) : tab === "adl" ? (
-          <ADLView onSave={addADLReport} existingReports={activeShift.adlReports} />
+          <ADLView onSave={addADLReport} existingReports={activeShift.adlReports} residents={residents} />
         ) : (
           <EMARView
             onAdminister={addEMARRecord}
             records={activeShift.emarRecords}
             caregiverId={currentCaregiverId}
+            residents={residents}
           />
         )}
       </main>
@@ -404,16 +406,17 @@ function ShiftView(props: {
   );
 }
 
-function ADLView({ onSave, existingReports }: {
+function ADLView({ onSave, existingReports, residents }: {
   onSave: (r: ADLReport) => void;
   existingReports: ADLReport[];
+  residents: DBResident[];
 }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [form, setForm] = useState<Omit<ADLReport, "residentId">>({
     bathing: false, dressing: false, eating: false, mobility: false, toileting: false, notes: "",
   });
 
-  const resident = MOCK_RESIDENTS.find(r => r.id === selected);
+  const resident = residents.find(r => r.id === selected);
   const saved = existingReports.find(r => r.residentId === selected);
 
   const handleSave = () => {
@@ -467,7 +470,7 @@ function ADLView({ onSave, existingReports }: {
     <div className="space-y-3 animate-slide-up">
       <h2 className="text-xl font-display font-bold text-foreground">Resident ADL Reports</h2>
       <p className="text-sm text-muted-foreground">Tap a resident to complete their daily activity report.</p>
-      {MOCK_RESIDENTS.map(r => {
+      {residents.map(r => {
         const done = existingReports.some(rep => rep.residentId === r.id);
         return (
           <button
@@ -491,16 +494,17 @@ function ADLView({ onSave, existingReports }: {
   );
 }
 
-function EMARView({ onAdminister, records, caregiverId }: {
+function EMARView({ onAdminister, records, caregiverId, residents }: {
   onAdminister: (r: Omit<import("@/types").EMARRecord, "id">) => void;
   records: import("@/types").EMARRecord[];
   caregiverId: string;
+  residents: DBResident[];
 }) {
   return (
     <div className="space-y-3 animate-slide-up">
       <h2 className="text-xl font-display font-bold text-foreground">Medication Administration</h2>
       <p className="text-sm text-muted-foreground">Tap "Administer" after giving each medication.</p>
-      {MOCK_RESIDENTS.map(r => (
+      {residents.map(r => (
         <div key={r.id} className="glass-card rounded-xl p-4 space-y-2">
           <div className="flex items-center gap-2">
             <Activity className="w-4 h-4 text-primary" />
@@ -541,7 +545,7 @@ function EMARView({ onAdminister, records, caregiverId }: {
   );
 }
 
-function HistoryView({ shifts }: { shifts: import("@/types").Shift[] }) {
+function HistoryView({ shifts, residents }: { shifts: import("@/types").Shift[]; residents: DBResident[] }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const formatDate = (d: Date) =>
@@ -624,7 +628,7 @@ function HistoryView({ shifts }: { shifts: import("@/types").Shift[] }) {
                   <div>
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">ADL Reports</p>
                     {shift.adlReports.map((adl, i) => {
-                      const resName = MOCK_RESIDENTS.find(r => r.id === adl.residentId)?.name || adl.residentId;
+                      const resName = residents.find(r => r.id === adl.residentId)?.name || adl.residentId;
                       const tasks = (["bathing", "dressing", "eating", "mobility", "toileting"] as const)
                         .filter(k => adl[k]);
                       return (
@@ -645,7 +649,7 @@ function HistoryView({ shifts }: { shifts: import("@/types").Shift[] }) {
                   <div>
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Medications Given</p>
                     {shift.emarRecords.map((rec, i) => {
-                      const resident = MOCK_RESIDENTS.find(r => r.id === rec.residentId);
+                      const resident = residents.find(r => r.id === rec.residentId);
                       const med = resident?.medications.find(m => m.id === rec.medicationId);
                       return (
                         <div key={i} className="bg-muted/50 rounded-lg p-2 mb-1 flex justify-between items-center">

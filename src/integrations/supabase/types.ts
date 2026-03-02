@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      medications: {
+        Row: {
+          created_at: string
+          dosage: string
+          id: string
+          name: string
+          resident_id: string
+          schedule: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dosage: string
+          id?: string
+          name: string
+          resident_id: string
+          schedule?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dosage?: string
+          id?: string
+          name?: string
+          resident_id?: string
+          schedule?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medications_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: false
+            referencedRelation: "residents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pay_runs: {
         Row: {
           approved_at: string | null
@@ -310,6 +348,30 @@ export type Database = {
           updated_at?: string
           user_id?: string
           w4?: Json
+        }
+        Relationships: []
+      }
+      residents: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          room: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          room: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          room?: string
+          updated_at?: string
         }
         Relationships: []
       }
