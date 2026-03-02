@@ -87,8 +87,12 @@ const makeShift = (
   return {
     id: `s-${caregiverId}-${daysAgo}-${startHour}`,
     caregiverId, caregiverName, clockIn, clockOut, is24Hour: is24,
+    clockInLocation: null,
+    clockOutLocation: null,
     mealBreakTaken: mealBreak,
     mealBreakReason: mealBreak ? null : "Resident emergency",
+    secondMealBreakTaken: null,
+    secondMealBreakReason: null,
     sleepStart: is24 ? (() => { const d = new Date(clockIn); d.setHours(22, 0); return d; })() : null,
     sleepEnd: is24 ? (() => { const d = new Date(clockIn); d.setDate(d.getDate() + 1); d.setHours(6, 0); return d; })() : null,
     sleepInterruptions: [],

@@ -440,13 +440,17 @@ export type Database = {
           caregiver_id: string
           caregiver_name: string
           clock_in: string
+          clock_in_location: Json | null
           clock_out: string | null
+          clock_out_location: Json | null
           created_at: string
           emar_records: Json
           id: string
           is_24_hour: boolean
           meal_break_reason: string | null
           meal_break_taken: boolean | null
+          second_meal_break_reason: string | null
+          second_meal_break_taken: boolean | null
           sleep_end: string | null
           sleep_interruptions: Json
           sleep_start: string | null
@@ -457,13 +461,17 @@ export type Database = {
           caregiver_id: string
           caregiver_name: string
           clock_in?: string
+          clock_in_location?: Json | null
           clock_out?: string | null
+          clock_out_location?: Json | null
           created_at?: string
           emar_records?: Json
           id?: string
           is_24_hour?: boolean
           meal_break_reason?: string | null
           meal_break_taken?: boolean | null
+          second_meal_break_reason?: string | null
+          second_meal_break_taken?: boolean | null
           sleep_end?: string | null
           sleep_interruptions?: Json
           sleep_start?: string | null
@@ -474,13 +482,17 @@ export type Database = {
           caregiver_id?: string
           caregiver_name?: string
           clock_in?: string
+          clock_in_location?: Json | null
           clock_out?: string | null
+          clock_out_location?: Json | null
           created_at?: string
           emar_records?: Json
           id?: string
           is_24_hour?: boolean
           meal_break_reason?: string | null
           meal_break_taken?: boolean | null
+          second_meal_break_reason?: string | null
+          second_meal_break_taken?: boolean | null
           sleep_end?: string | null
           sleep_interruptions?: Json
           sleep_start?: string | null

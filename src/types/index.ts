@@ -12,15 +12,26 @@ export interface Medication {
   schedule: string;
 }
 
+export interface GeoLocation {
+  latitude: number;
+  longitude: number;
+  accuracy: number;
+  timestamp: number;
+}
+
 export interface Shift {
   id: string;
   caregiverId: string;
   caregiverName: string;
   clockIn: Date;
   clockOut: Date | null;
+  clockInLocation: GeoLocation | null;
+  clockOutLocation: GeoLocation | null;
   is24Hour: boolean;
   mealBreakTaken: boolean | null;
   mealBreakReason: string | null;
+  secondMealBreakTaken: boolean | null;
+  secondMealBreakReason: string | null;
   sleepStart: Date | null;
   sleepEnd: Date | null;
   sleepInterruptions: SleepInterruption[];
