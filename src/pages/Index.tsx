@@ -3,10 +3,11 @@ import { Shield, Heart, ArrowRight, LogOut } from "lucide-react";
 
 interface IndexProps {
   isAdmin?: boolean;
+  isReviewer?: boolean;
   signOut?: () => Promise<void>;
 }
 
-const Index = ({ isAdmin, signOut }: IndexProps) => {
+const Index = ({ isAdmin, isReviewer, signOut }: IndexProps) => {
   const { setRole, setCurrentCaregiverId } = useApp();
 
   return (
@@ -44,7 +45,7 @@ const Index = ({ isAdmin, signOut }: IndexProps) => {
             </div>
           </button>
 
-          {/* Admin Card — only show if user has admin role */}
+          {/* Admin Card */}
           {isAdmin && (
             <button
               onClick={() => setRole("admin")}
@@ -61,6 +62,27 @@ const Index = ({ isAdmin, signOut }: IndexProps) => {
                   </div>
                 </div>
                 <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-accent transition-colors" />
+              </div>
+            </button>
+          )}
+
+          {/* Reviewer Card */}
+          {isReviewer && !isAdmin && (
+            <button
+              onClick={() => setRole("admin")}
+              className="w-full glass-card rounded-xl p-6 text-left transition-all hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] group"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <Shield className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-foreground">Reviewer</h2>
+                    <p className="text-sm text-muted-foreground">Read-only reports & audit trail</p>
+                  </div>
+                </div>
+                <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
               </div>
             </button>
           )}
