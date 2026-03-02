@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           annual_salary: number | null
           created_at: string
+          deductions: Json
           display_name: string
           federal_allowances: number | null
           filing_status: string | null
@@ -31,10 +32,12 @@ export type Database = {
           state_allowances: number | null
           updated_at: string
           user_id: string
+          w4: Json
         }
         Insert: {
           annual_salary?: number | null
           created_at?: string
+          deductions?: Json
           display_name: string
           federal_allowances?: number | null
           filing_status?: string | null
@@ -48,10 +51,12 @@ export type Database = {
           state_allowances?: number | null
           updated_at?: string
           user_id: string
+          w4?: Json
         }
         Update: {
           annual_salary?: number | null
           created_at?: string
+          deductions?: Json
           display_name?: string
           federal_allowances?: number | null
           filing_status?: string | null
@@ -65,6 +70,7 @@ export type Database = {
           state_allowances?: number | null
           updated_at?: string
           user_id?: string
+          w4?: Json
         }
         Relationships: []
       }
