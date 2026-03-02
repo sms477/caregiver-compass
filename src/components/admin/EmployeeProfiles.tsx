@@ -1,10 +1,12 @@
 import { useApp } from "@/contexts/AppContext";
 import { Employee } from "@/types";
 import { useState } from "react";
-import { User, Mail, Phone, DollarSign, Edit2, Check, X, UserPlus, Loader2, Copy, Building2 } from "lucide-react";
+import { User, Mail, Phone, DollarSign, Edit2, Check, X, UserPlus, Loader2, Copy, Building2, Trash2 } from "lucide-react";
 import { formatCurrency } from "@/lib/payroll";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 const EmployeeProfiles = () => {
   const { employees, updateEmployee, refreshEmployees } = useApp();
@@ -14,7 +16,27 @@ const EmployeeProfiles = () => {
   const [inviteForm, setInviteForm] = useState({ name: "", email: "", hourlyRate: "17.00", jobTitle: "Caregiver" });
   const [inviting, setInviting] = useState(false);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      // Delete user roles first, then profile
+      await supabase.from("user_roles").delete().eq("user_id", deleteTarget.id);
+      const { error } = await supabase.from("profiles").delete().eq("user_id", deleteTarget.id);
+      if (error) throw error;
+      toast({ title: "Team member removed", description: `${deleteTarget.name} has been deleted.` });
+      await refreshEmployees();
+    } catch (err: any) {
+      toast({ title: "Delete failed", description: err.message, variant: "destructive" });
+    } finally {
+      setDeleting(false);
+      setDeleteTarget(null);
+    }
+  };
 
   const startEdit = (emp: Employee) => {
     setEditingId(emp.id);
@@ -210,12 +232,20 @@ const EmployeeProfiles = () => {
                     </div>
                   </div>
                   {!isEditing ? (
-                    <button
-                      onClick={() => startEdit(emp)}
-                      className="text-muted-foreground hover:text-primary transition-colors p-1"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => startEdit(emp)}
+                        className="text-muted-foreground hover:text-primary transition-colors p-1"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setDeleteTarget(emp)}
+                        className="text-muted-foreground hover:text-destructive transition-colors p-1"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   ) : (
                     <div className="flex gap-1">
                       <button onClick={saveEdit} className="p-1 text-success hover:bg-success/10 rounded">
@@ -574,6 +604,25 @@ const EmployeeProfiles = () => {
           })}
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove Team Member</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Are you sure you want to remove <span className="font-semibold text-foreground">{deleteTarget?.name}</span>? This will delete their profile and role assignments. This action cannot be undone.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleting}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+              {deleting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
