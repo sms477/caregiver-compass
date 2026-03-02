@@ -1,7 +1,7 @@
 import { useApp } from "@/contexts/AppContext";
 import { Employee } from "@/types";
 import { useState } from "react";
-import { User, Mail, Phone, DollarSign, Edit2, Check, X, UserPlus, Loader2, Copy } from "lucide-react";
+import { User, Mail, Phone, DollarSign, Edit2, Check, X, UserPlus, Loader2, Copy, Building2 } from "lucide-react";
 import { formatCurrency } from "@/lib/payroll";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -498,6 +498,75 @@ const EmployeeProfiles = () => {
                     >
                       + Add Deduction
                     </button>
+                  )}
+                </div>
+
+                {/* Bank / Direct Deposit Info */}
+                <div className="border-t border-border pt-3 space-y-2">
+                  <label className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+                    <Building2 className="w-3 h-3" /> Direct Deposit
+                  </label>
+                  {isEditing ? (
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div className="space-y-1">
+                        <label className="text-xs text-muted-foreground">Bank Name</label>
+                        <input
+                          value={editForm?.bankInfo?.bankName || ""}
+                          onChange={e => setEditForm(prev => prev ? {
+                            ...prev,
+                            bankInfo: { ...(prev.bankInfo || { bankName: "", routingNumber: "", accountNumber: "", accountType: "checking" as const }), bankName: e.target.value }
+                          } : null)}
+                          placeholder="Chase, Wells Fargo..."
+                          className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs text-muted-foreground">Account Type</label>
+                        <select
+                          value={editForm?.bankInfo?.accountType || "checking"}
+                          onChange={e => setEditForm(prev => prev ? {
+                            ...prev,
+                            bankInfo: { ...(prev.bankInfo || { bankName: "", routingNumber: "", accountNumber: "", accountType: "checking" as const }), accountType: e.target.value as "checking" | "savings" }
+                          } : null)}
+                          className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                        >
+                          <option value="checking">Checking</option>
+                          <option value="savings">Savings</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs text-muted-foreground">Routing Number</label>
+                        <input
+                          value={editForm?.bankInfo?.routingNumber || ""}
+                          onChange={e => setEditForm(prev => prev ? {
+                            ...prev,
+                            bankInfo: { ...(prev.bankInfo || { bankName: "", routingNumber: "", accountNumber: "", accountType: "checking" as const }), routingNumber: e.target.value }
+                          } : null)}
+                          placeholder="9 digits"
+                          maxLength={9}
+                          className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs text-muted-foreground">Account Number</label>
+                        <input
+                          value={editForm?.bankInfo?.accountNumber || ""}
+                          onChange={e => setEditForm(prev => prev ? {
+                            ...prev,
+                            bankInfo: { ...(prev.bankInfo || { bankName: "", routingNumber: "", accountNumber: "", accountType: "checking" as const }), accountNumber: e.target.value }
+                          } : null)}
+                          placeholder="Account number"
+                          className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  ) : data.bankInfo ? (
+                    <div className="text-sm text-foreground space-y-1">
+                      <p>{data.bankInfo.bankName} · <span className="capitalize">{data.bankInfo.accountType}</span></p>
+                      <p className="text-muted-foreground">Account ending in {data.bankInfo.accountNumber?.slice(-4) || "****"}</p>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic">Not configured — direct deposit unavailable</p>
                   )}
                 </div>
               </div>

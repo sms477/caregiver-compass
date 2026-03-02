@@ -43,6 +43,7 @@ export const MOCK_EMPLOYEES: Employee[] = [
     filingStatus: "single", federalAllowances: 1, stateAllowances: 1,
     w4: { additionalWithholding: 0, isExempt: false },
     deductions: [{ label: "Health Insurance", type: "pre_tax", amount: 150 }],
+    bankInfo: { bankName: "Chase", routingNumber: "021000021", accountNumber: "****4567", accountType: "checking" },
     startDate: "2024-03-15", role: "Lead Caregiver",
   },
   {
@@ -51,6 +52,7 @@ export const MOCK_EMPLOYEES: Employee[] = [
     filingStatus: "married", federalAllowances: 2, stateAllowances: 2,
     w4: { additionalWithholding: 25, isExempt: false },
     deductions: [{ label: "401(k)", type: "pre_tax", amount: 200 }, { label: "Roth IRA", type: "post_tax", amount: 100 }],
+    bankInfo: null,
     startDate: "2024-06-01", role: "Caregiver",
   },
   {
@@ -59,6 +61,7 @@ export const MOCK_EMPLOYEES: Employee[] = [
     filingStatus: "single", federalAllowances: 1, stateAllowances: 1,
     w4: { additionalWithholding: 0, isExempt: false },
     deductions: [],
+    bankInfo: { bankName: "Bank of America", routingNumber: "026009593", accountNumber: "****8901", accountType: "checking" },
     startDate: "2024-01-10", role: "Senior Caregiver",
   },
 ];
