@@ -125,11 +125,22 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     refreshEmployees();
+
+    // Listen for auth changes to always have the correct user ID
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user?.id) {
+        setCurrentCaregiverId(session.user.id);
+      }
+    });
+
+    // Also check existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user?.id) {
         setCurrentCaregiverId(session.user.id);
       }
     });
+
+    return () => subscription.unsubscribe();
   }, [refreshEmployees]);
 
   // Load shifts once we know the caregiver ID
