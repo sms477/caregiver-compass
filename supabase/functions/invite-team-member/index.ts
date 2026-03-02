@@ -74,7 +74,10 @@ Deno.serve(async (req) => {
     });
 
     if (createError) {
-      return new Response(JSON.stringify({ error: createError.message }), {
+      const msg = createError.message.toLowerCase().includes("already been registered")
+        ? `A team member with email "${email}" already exists.`
+        : createError.message;
+      return new Response(JSON.stringify({ error: msg }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
