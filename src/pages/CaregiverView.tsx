@@ -4,15 +4,13 @@ import { useResidents, DBResident } from "@/hooks/useResidents";
 import { ADLReport } from "@/types";
 import {
   Clock, LogOut, Moon, Sun, AlertTriangle, Check, Pill,
-  ChevronLeft, ClipboardList, Activity, ArrowLeft, History, Receipt, FileText,
+  ChevronLeft, ClipboardList, Activity, ArrowLeft, History,
   MapPin
 } from "lucide-react";
 import { toast } from "sonner";
-import MyPayStubs from "@/components/caregiver/MyPayStubs";
-import MyTaxForms from "@/components/caregiver/MyTaxForms";
 import IncidentsView from "@/components/admin/IncidentsView";
 
-type Tab = "clock" | "adl" | "emar" | "incidents" | "history" | "paystubs" | "taxforms";
+type Tab = "clock" | "adl" | "emar" | "incidents";
 
 const CaregiverView = () => {
   const {
@@ -169,11 +167,9 @@ const CaregiverView = () => {
             { key: "clock" as Tab, icon: Clock, label: "Shift" },
             { key: "adl" as Tab, icon: ClipboardList, label: "ADLs" },
             { key: "emar" as Tab, icon: Pill, label: "eMAR" },
-          ] : []),
-          { key: "incidents" as Tab, icon: AlertTriangle, label: "Incidents" },
-          { key: "paystubs" as Tab, icon: Receipt, label: "Pay Stubs" },
-          { key: "taxforms" as Tab, icon: FileText, label: "Tax Forms" },
-          { key: "history" as Tab, icon: History, label: "History" },
+          ] : [
+            { key: "incidents" as Tab, icon: AlertTriangle, label: "Incidents" },
+          ]),
         ]).map(({ key, icon: Icon, label }) => (
           <button
             key={key}
@@ -190,14 +186,8 @@ const CaregiverView = () => {
 
       {/* Content */}
       <main className="flex-1 p-4 space-y-4 max-w-lg mx-auto w-full">
-        {tab === "paystubs" ? (
-          <MyPayStubs />
-        ) : tab === "taxforms" ? (
-          <MyTaxForms />
-        ) : tab === "incidents" ? (
+        {tab === "incidents" ? (
           <IncidentsView staffOnly={{ id: currentCaregiverId, name: caregiverName }} />
-        ) : tab === "history" ? (
-          <HistoryView shifts={shifts} residents={residents} />
         ) : !activeShift ? (
           <ClockInView
             showOptions={showClockInOptions}
