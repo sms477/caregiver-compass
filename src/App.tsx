@@ -2,12 +2,14 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppProvider, useApp } from "@/contexts/AppContext";
 import { useAuth } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import CaregiverView from "./pages/CaregiverView";
 import AdminDashboard from "./pages/AdminDashboard";
 import AuthPage from "./pages/AuthPage";
+import ResetPassword from "./pages/ResetPassword";
 import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
@@ -40,9 +42,19 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <AppProvider>
-        <AppRouter />
-      </AppProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route
+            path="*"
+            element={
+              <AppProvider>
+                <AppRouter />
+              </AppProvider>
+            }
+          />
+        </Routes>
+      </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
 );
