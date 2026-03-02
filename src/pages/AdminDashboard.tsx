@@ -12,14 +12,16 @@ import { MOCK_PAY_PERIODS } from "@/data/mockData";
 import PayRunWizard from "@/components/admin/PayRunWizard";
 import EmployeeProfiles from "@/components/admin/EmployeeProfiles";
 import PayStubsView from "@/components/admin/PayStubsView";
+import PayrollReports from "@/components/admin/PayrollReports";
 
-type AdminTab = "dashboard" | "run-payroll" | "employees" | "pay-stubs" | "shifts";
+type AdminTab = "dashboard" | "run-payroll" | "employees" | "pay-stubs" | "reports" | "shifts";
 
 const NAV_ITEMS: { key: AdminTab; label: string; icon: React.ElementType }[] = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { key: "run-payroll", label: "Run Payroll", icon: Play },
   { key: "employees", label: "Team", icon: UserCircle },
   { key: "pay-stubs", label: "Pay Stubs", icon: Receipt },
+  { key: "reports", label: "Reports", icon: TrendingUp },
   { key: "shifts", label: "Shift Log", icon: FileText },
 ];
 
@@ -167,6 +169,7 @@ const AdminDashboard = () => {
 
           {tab === "employees" && <EmployeeProfiles />}
           {tab === "pay-stubs" && <PayStubsView />}
+          {tab === "reports" && <PayrollReports />}
 
           {tab === "shifts" && (
             <ShiftLogView shifts={completedShifts} />
