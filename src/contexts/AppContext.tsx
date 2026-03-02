@@ -237,7 +237,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         state_allowances: emp.stateAllowances,
         phone: emp.phone,
         job_title: emp.role,
-      })
+        pay_type: emp.payType,
+        annual_salary: emp.annualSalary,
+        shift_differentials: JSON.parse(JSON.stringify(emp.shiftDifferentials)),
+      } as any)
       .eq("user_id", emp.id);
     setEmployees(prev => prev.map(e => e.id === emp.id ? emp : e));
   }, []);
