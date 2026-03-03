@@ -47,6 +47,72 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_care_logs: {
+        Row: {
+          bathing: string
+          created_at: string
+          dressing: string
+          eating: string
+          id: string
+          location_id: string | null
+          log_date: string
+          notes: string | null
+          resident_id: string
+          staff_id: string
+          staff_name: string
+          toileting: string
+          transfers: string
+          updated_at: string
+        }
+        Insert: {
+          bathing?: string
+          created_at?: string
+          dressing?: string
+          eating?: string
+          id?: string
+          location_id?: string | null
+          log_date?: string
+          notes?: string | null
+          resident_id: string
+          staff_id: string
+          staff_name: string
+          toileting?: string
+          transfers?: string
+          updated_at?: string
+        }
+        Update: {
+          bathing?: string
+          created_at?: string
+          dressing?: string
+          eating?: string
+          id?: string
+          location_id?: string | null
+          log_date?: string
+          notes?: string | null
+          resident_id?: string
+          staff_id?: string
+          staff_name?: string
+          toileting?: string
+          transfers?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_care_logs_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_care_logs_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: false
+            referencedRelation: "residents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hospice_agencies: {
         Row: {
           created_at: string
