@@ -65,6 +65,8 @@ const AdminDashboard = () => {
       prospectId: prospect.id,
       name: prospect.name,
       locationId: prospect.location_id,
+      phone: prospect.phone,
+      email: prospect.email,
     });
     setTab("residents");
   };

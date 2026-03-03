@@ -23,6 +23,8 @@ export interface ProspectConversionData {
   prospectId: string;
   name: string;
   locationId: string | null;
+  phone?: string | null;
+  email?: string | null;
 }
 
 interface Props {
@@ -61,6 +63,12 @@ const ResidentsManager = ({ conversionData, onConversionComplete }: Props) => {
   const [expandedBilling, setExpandedBilling] = useState<string | null>(null);
   const [loadingBilling, setLoadingBilling] = useState<string | null>(null);
 
+  // Family contact fields
+  const [contactName, setContactName] = useState("");
+  const [contactRelationship, setContactRelationship] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+
   // Auto-open the Add Resident dialog when conversionData is provided
   useEffect(() => {
     if (conversionData) {
@@ -76,6 +84,26 @@ const ResidentsManager = ({ conversionData, onConversionComplete }: Props) => {
       setResSecurityDeposit("");
       setPendingProspectId(conversionData.prospectId);
       setPendingLocationId(conversionData.locationId);
+      // Pre-fill family contact from prospect data
+      setContactName("");
+      setContactRelationship("Responsible Party");
+      setContactPhone(conversionData.phone || "");
+      setContactEmail(conversionData.email || "");
+      // Also try to load existing family contacts for this prospect
+      supabase
+        .from("family_contacts")
+        .select("*")
+        .eq("prospect_id", conversionData.prospectId)
+        .limit(1)
+        .then(({ data }) => {
+          if (data && data.length > 0) {
+            const fc = data[0];
+            setContactName(fc.name || "");
+            setContactRelationship(fc.relationship || "Responsible Party");
+            setContactPhone(fc.phone || conversionData.phone || "");
+            setContactEmail(fc.email || conversionData.email || "");
+          }
+        });
       setShowResidentDialog(true);
     }
   }, [conversionData]);
@@ -110,6 +138,10 @@ const ResidentsManager = ({ conversionData, onConversionComplete }: Props) => {
     setResSecurityDeposit("");
     setPendingProspectId(null);
     setPendingLocationId(null);
+    setContactName("");
+    setContactRelationship("");
+    setContactPhone("");
+    setContactEmail("");
     setShowResidentDialog(true);
   };
 
@@ -172,6 +204,20 @@ const ResidentsManager = ({ conversionData, onConversionComplete }: Props) => {
         if (contractErr) {
           toast.error("Resident created but contract failed: " + contractErr.message);
         }
+      }
+
+      // Create primary family contact if name provided
+      if (contactName.trim()) {
+        await supabase.from("family_contacts").insert({
+          resident_id: residentId,
+          name: contactName.trim(),
+          relationship: contactRelationship.trim() || "Responsible Party",
+          phone: contactPhone.trim() || null,
+          email: contactEmail.trim() || null,
+          notes: "Primary / Responsible Party",
+          ...(pendingLocationId ? { location_id: pendingLocationId } : {}),
+          ...(pendingProspectId ? { prospect_id: pendingProspectId } : {}),
+        });
       }
 
       // Update prospect status if this came from CRM conversion
@@ -466,6 +512,35 @@ const ResidentsManager = ({ conversionData, onConversionComplete }: Props) => {
               <label className="text-sm font-medium text-foreground">LIC 602A Expiry</label>
               <Input type="date" value={resLic602a} onChange={e => setResLic602a(e.target.value)} />
             </div>
+
+            {/* Primary Family Contact */}
+            {!editResident && (
+              <>
+                <div className="border-t border-border pt-4">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">👨‍👩‍👧 Primary Family Contact</p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-sm font-medium text-foreground">Contact Name</label>
+                    <Input value={contactName} onChange={e => setContactName(e.target.value)} placeholder="e.g. Jane Doe" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-foreground">Relationship</label>
+                    <Input value={contactRelationship} onChange={e => setContactRelationship(e.target.value)} placeholder="e.g. Daughter" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-sm font-medium text-foreground">Phone</label>
+                    <Input value={contactPhone} onChange={e => setContactPhone(e.target.value)} placeholder="e.g. (555) 123-4567" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-foreground">Email</label>
+                    <Input value={contactEmail} onChange={e => setContactEmail(e.target.value)} placeholder="e.g. jane@email.com" />
+                  </div>
+                </div>
+              </>
+            )}
 
             {/* Billing fields */}
             {!editResident && (
