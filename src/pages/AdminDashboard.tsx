@@ -29,6 +29,7 @@ import OverdueShiftAlerts from "@/components/admin/OverdueShiftAlerts";
 import ShiftEditor from "@/components/admin/ShiftEditor";
 import AcuityReview from "@/components/admin/AcuityReview";
 import BillingDashboard from "@/components/admin/BillingDashboard";
+import AdminDashboardHome from "@/components/admin/AdminDashboardHome";
 
 type AdminTab = "dashboard" | "run-payroll" | "employees" | "residents" | "acuity-review" | "billing" | "incidents" | "pay-stubs" | "payments" | "tax-forms" | "reports" | "shifts" | "audit-trail";
 
@@ -179,15 +180,7 @@ const AdminDashboard = () => {
       <main className="flex-1 lg:pt-0 pt-24 overflow-y-auto">
         <div className="max-w-5xl mx-auto p-4 lg:p-8 space-y-6">
           {tab === "dashboard" && (
-            <DashboardView
-              previewRun={previewRun}
-              currentPeriod={currentPeriod}
-              completedShifts={completedShifts}
-              complianceAlerts={complianceAlerts}
-              payRuns={payRuns}
-              onRunPayroll={() => setTab("run-payroll")}
-              onExportCSV={exportCSV}
-            />
+            <AdminDashboardHome onNavigate={(t) => setTab(t as AdminTab)} />
           )}
 
           {tab === "run-payroll" && (
@@ -217,171 +210,7 @@ const AdminDashboard = () => {
   );
 };
 
-/* ---- Dashboard Home ---- */
-
-function DashboardView({ previewRun, currentPeriod, completedShifts, complianceAlerts, payRuns, onRunPayroll, onExportCSV }: {
-  previewRun: any;
-  currentPeriod: any;
-  completedShifts: Shift[];
-  complianceAlerts: { type: string; message: string }[];
-  payRuns: any[];
-  onRunPayroll: () => void;
-  onExportCSV: () => void;
-}) {
-  return (
-    <div className="space-y-6 animate-slide-up">
-      {/* Welcome Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-display font-bold text-foreground">Payroll Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Current period: {currentPeriod.label}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={onExportCSV}
-            className="flex items-center gap-2 rounded-lg border border-border text-foreground px-4 py-2 text-sm font-medium hover:bg-muted active:scale-[0.97] transition-all"
-          >
-            <Download className="w-4 h-4" /> Export
-          </button>
-          <button
-            onClick={onRunPayroll}
-            className="flex items-center gap-2 rounded-lg bg-primary text-primary-foreground px-5 py-2 text-sm font-semibold shadow-md hover:shadow-lg active:scale-[0.97] transition-all"
-          >
-            <Play className="w-4 h-4" /> Run Payroll
-          </button>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard icon={DollarSign} label="Est. Net Pay" value={formatCurrency(previewRun.totalNetPay)} accent />
-        <StatCard icon={TrendingUp} label="Est. Gross Pay" value={formatCurrency(previewRun.totalGrossPay)} />
-        <StatCard icon={Users} label="Employees" value={previewRun.lineItems.length.toString()} />
-        <StatCard icon={Clock} label="Total Shifts" value={completedShifts.length.toString()} />
-      </div>
-
-      {/* Overdue Shift Alerts */}
-      <OverdueShiftAlerts />
-
-      {/* Compliance Alerts */}
-      {complianceAlerts.length > 0 && (
-        <div className="glass-card rounded-xl p-4 space-y-2 border-l-4 border-warning">
-          <h3 className="font-display font-bold text-foreground flex items-center gap-2 text-sm">
-            <AlertTriangle className="w-4 h-4 text-warning" /> {complianceAlerts.length} Compliance Alert(s)
-          </h3>
-          {complianceAlerts.map((a, i) => (
-            <div key={i} className={`rounded-lg p-3 text-sm ${
-              a.type === "danger" ? "bg-destructive/10 text-destructive" : "bg-warning/10 text-warning"
-            }`}>
-              {a.message}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Quick Preview Table */}
-      <div className="glass-card rounded-xl overflow-hidden">
-        <div className="flex items-center justify-between p-4 border-b border-border">
-          <h3 className="font-semibold text-foreground">Period Preview</h3>
-          <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
-            {currentPeriod.label}
-          </span>
-        </div>
-        {previewRun.lineItems.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-muted/30">
-                  <th className="text-left p-3 font-medium text-muted-foreground">Employee</th>
-                  <th className="text-right p-3 font-medium text-muted-foreground">Hours</th>
-                  <th className="text-right p-3 font-medium text-muted-foreground">Gross</th>
-                  <th className="text-right p-3 font-medium text-muted-foreground">Taxes</th>
-                  <th className="text-right p-3 font-semibold text-foreground">Net Pay</th>
-                </tr>
-              </thead>
-              <tbody>
-                {previewRun.lineItems.map((li: any) => (
-                  <tr key={li.employeeId} className="border-t border-border">
-                    <td className="p-3">
-                      <p className="font-medium text-foreground">{li.employeeName}</p>
-                      <p className="text-xs text-muted-foreground">{formatCurrency(li.hourlyRate)}/hr</p>
-                    </td>
-                    <td className="p-3 text-right text-foreground">
-                      {li.grossHours.toFixed(1)}
-                      {li.overtimeHours > 0 && (
-                        <span className="text-xs text-muted-foreground ml-1">({li.overtimeHours.toFixed(1)} OT)</span>
-                      )}
-                      {li.doubleTimeHours > 0 && (
-                        <span className="text-xs text-warning ml-1">({li.doubleTimeHours.toFixed(1)} DT)</span>
-                      )}
-                    </td>
-                    <td className="p-3 text-right text-foreground">{formatCurrency(li.grossPay)}</td>
-                    <td className="p-3 text-right text-destructive">-{formatCurrency(li.taxes.totalTaxes)}</td>
-                    <td className="p-3 text-right font-bold text-foreground">{formatCurrency(li.netPay)}</td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="border-t-2 border-border bg-muted/30">
-                  <td className="p-3 font-semibold text-foreground">Total</td>
-                  <td className="p-3" />
-                  <td className="p-3 text-right font-semibold text-foreground">{formatCurrency(previewRun.totalGrossPay)}</td>
-                  <td className="p-3 text-right font-semibold text-destructive">-{formatCurrency(previewRun.totalTaxes)}</td>
-                  <td className="p-3 text-right font-bold text-foreground text-lg">{formatCurrency(previewRun.totalNetPay)}</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        ) : (
-          <div className="p-8 text-center text-muted-foreground">
-            No shifts found for the current period.
-          </div>
-        )}
-      </div>
-
-      {/* Past Pay Runs */}
-      {payRuns.length > 0 && (
-        <div className="glass-card rounded-xl p-4 space-y-3">
-          <h3 className="font-semibold text-foreground">Recent Pay Runs</h3>
-          {payRuns.map(run => (
-            <div key={run.id} className="flex items-center justify-between border-b border-border last:border-0 pb-3 last:pb-0">
-              <div>
-                <p className="font-medium text-foreground text-sm">{run.payPeriod.label}</p>
-                <p className="text-xs text-muted-foreground">
-                  {run.lineItems.length} employees · {run.status === "approved" ? "Approved" : run.status}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="font-semibold text-foreground">{formatCurrency(run.totalNetPay)}</p>
-                <span className={`text-xs px-2 py-0.5 rounded-full ${
-                  run.status === "approved" ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"
-                }`}>
-                  {run.status}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function StatCard({ icon: Icon, label, value, accent }: {
-  icon: React.ElementType; label: string; value: string; accent?: boolean;
-}) {
-  return (
-    <div className={`glass-card rounded-xl p-4 space-y-1 ${accent ? "border-2 border-primary/20" : ""}`}>
-      <div className="flex items-center gap-2">
-        <Icon className={`w-4 h-4 ${accent ? "text-primary" : "text-muted-foreground"}`} />
-        <span className="text-xs text-muted-foreground font-medium">{label}</span>
-      </div>
-      <p className={`text-2xl font-display font-bold ${accent ? "text-primary" : "text-foreground"}`}>{value}</p>
-    </div>
-  );
-}
+/* ---- Shift Log ---- */
 
 function ShiftLogView({ shifts, onRefresh }: { shifts: Shift[]; onRefresh?: () => void }) {
   const [groupBy, setGroupBy] = useState<"day" | "employee">("day");
