@@ -7,9 +7,10 @@ import ProspectDetail from "./ProspectDetail";
 
 interface Props {
   crm: ReturnType<typeof import("@/hooks/useCRM").useCRM>;
+  onConvertProspect?: (prospect: Prospect) => void;
 }
 
-const PipelineView = ({ crm }: Props) => {
+const PipelineView = ({ crm, onConvertProspect }: Props) => {
   const [showAdd, setShowAdd] = useState(false);
   const [selectedProspect, setSelectedProspect] = useState<Prospect | null>(null);
 
@@ -22,8 +23,13 @@ const PipelineView = ({ crm }: Props) => {
   const convertedCount = crm.prospects.filter(p => p.stage === "converted").length;
   const upcomingTours = crm.tours.filter(t => new Date(t.scheduled_at) >= new Date() && t.status === "scheduled").length;
 
-  const handleStageChange = async (prospectId: string, newStage: ProspectStage) => {
-    await crm.updateStage(prospectId, newStage);
+  const handleStageChange = async (prospect: Prospect, newStage: ProspectStage) => {
+    // If moving to converted, trigger the resident creation modal instead
+    if (newStage === "converted" && onConvertProspect) {
+      onConvertProspect(prospect);
+      return;
+    }
+    await crm.updateStage(prospect.id, newStage);
   };
 
   return (
@@ -88,7 +94,7 @@ const PipelineView = ({ crm }: Props) => {
                         onClick={(e) => {
                           e.stopPropagation();
                           const nextIdx = STAGES.indexOf(stage) + 1;
-                          if (nextIdx < STAGES.length) handleStageChange(prospect.id, STAGES[nextIdx]);
+                          if (nextIdx < STAGES.length) handleStageChange(prospect, STAGES[nextIdx]);
                         }}
                         className="mt-2 flex items-center gap-1 text-xs text-primary hover:text-primary/80 font-medium transition-colors"
                       >
@@ -115,6 +121,7 @@ const PipelineView = ({ crm }: Props) => {
           prospect={selectedProspect}
           crm={crm}
           onClose={() => setSelectedProspect(null)}
+          onConvert={onConvertProspect}
         />
       )}
     </div>

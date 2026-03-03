@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useCRM } from "@/hooks/useCRM";
+import { useCRM, type Prospect } from "@/hooks/useCRM";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
 import PipelineView from "./PipelineView";
@@ -7,7 +7,11 @@ import ProspectsList from "./ProspectsList";
 import ToursView from "./ToursView";
 import CRMReporting from "./CRMReporting";
 
-const CRMDashboard = () => {
+interface Props {
+  onConvertProspect?: (prospect: Prospect) => void;
+}
+
+const CRMDashboard = ({ onConvertProspect }: Props) => {
   const crm = useCRM();
   const [tab, setTab] = useState("pipeline");
 
@@ -37,7 +41,7 @@ const CRMDashboard = () => {
         </TabsList>
 
         <TabsContent value="pipeline" className="mt-4">
-          <PipelineView crm={crm} />
+          <PipelineView crm={crm} onConvertProspect={onConvertProspect} />
         </TabsContent>
         <TabsContent value="prospects" className="mt-4">
           <ProspectsList crm={crm} />

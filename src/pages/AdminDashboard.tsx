@@ -31,6 +31,8 @@ import AcuityReview from "@/components/admin/AcuityReview";
 import BillingDashboard from "@/components/admin/BillingDashboard";
 import AdminDashboardHome from "@/components/admin/AdminDashboardHome";
 import CRMDashboard from "@/components/admin/crm/CRMDashboard";
+import { type ProspectConversionData } from "@/components/admin/ResidentsManager";
+import { type Prospect } from "@/hooks/useCRM";
 import { Heart } from "lucide-react";
 
 type AdminTab = "dashboard" | "crm" | "run-payroll" | "employees" | "residents" | "acuity-review" | "billing" | "incidents" | "pay-stubs" | "payments" | "tax-forms" | "reports" | "shifts" | "audit-trail";
@@ -56,6 +58,21 @@ const AdminDashboard = () => {
   const { setRole, shifts, employees, payRuns, activeShift } = useApp();
   const [refreshKey, setRefreshKey] = useState(0);
   const [tab, setTab] = useState<AdminTab>("dashboard");
+  const [conversionData, setConversionData] = useState<ProspectConversionData | null>(null);
+
+  const handleConvertProspect = (prospect: Prospect) => {
+    setConversionData({
+      prospectId: prospect.id,
+      name: prospect.name,
+      locationId: prospect.location_id,
+    });
+    setTab("residents");
+  };
+
+  const handleConversionComplete = () => {
+    setConversionData(null);
+    setTab("billing");
+  };
 
   const completedShifts = shifts.filter(s => s.clockOut);
 
@@ -193,9 +210,14 @@ const AdminDashboard = () => {
             />
           )}
 
-          {tab === "crm" && <CRMDashboard />}
+          {tab === "crm" && <CRMDashboard onConvertProspect={handleConvertProspect} />}
           {tab === "employees" && <EmployeeProfiles />}
-          {tab === "residents" && <ResidentsManager />}
+          {tab === "residents" && (
+            <ResidentsManager
+              conversionData={conversionData}
+              onConversionComplete={handleConversionComplete}
+            />
+          )}
           {tab === "acuity-review" && <AcuityReview />}
           {tab === "billing" && <BillingDashboard />}
           {tab === "incidents" && <IncidentsView />}
