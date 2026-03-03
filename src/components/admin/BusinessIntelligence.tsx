@@ -32,13 +32,6 @@ interface Notice {
   pctComplete: number;
 }
 
-interface Lic602Alert {
-  id: string;
-  name: string;
-  room: string;
-  lic602a_expiry: string;
-  daysLeft: number;
-}
 
 interface ResidentRow {
   id: string;
@@ -52,7 +45,6 @@ interface ResidentRow {
 
 const BusinessIntelligence = ({ onNavigate, onQuickExpense }: { onNavigate: (tab: string) => void; onQuickExpense?: () => void }) => {
   const [notices, setNotices] = useState<Notice[]>([]);
-  const [lic602Alerts, setLic602Alerts] = useState<Lic602Alert[]>([]);
   const [residentRows, setResidentRows] = useState<ResidentRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [invoiceResident, setInvoiceResident] = useState<ResidentRow | null>(null);
@@ -103,18 +95,6 @@ const BusinessIntelligence = ({ onNavigate, onQuickExpense }: { onNavigate: (tab
         };
       });
 
-      // LIC 602A alerts within 30 days
-      const alerts: Lic602Alert[] = ((residentsData as any[]) || [])
-        .filter((r: any) => r.lic602a_expiry)
-        .map((r: any) => ({
-          id: r.id,
-          name: r.name,
-          room: r.room,
-          lic602a_expiry: r.lic602a_expiry,
-          daysLeft: differenceInDays(parseISO(r.lic602a_expiry), today),
-        }))
-        .filter(r => r.daysLeft <= 30)
-        .sort((a, b) => a.daysLeft - b.daysLeft);
 
       // Resident list with contract info for Generate Invoice
       const contractMap = new Map<string, any>();
@@ -134,7 +114,6 @@ const BusinessIntelligence = ({ onNavigate, onQuickExpense }: { onNavigate: (tab
       });
 
       setNotices(mappedNotices);
-      setLic602Alerts(alerts);
       setResidentRows(rows);
       setLoading(false);
     };
@@ -167,42 +146,6 @@ const BusinessIntelligence = ({ onNavigate, onQuickExpense }: { onNavigate: (tab
         )}
       </div>
 
-      {/* LIC 602A Urgent Alerts */}
-      {lic602Alerts.length > 0 && (
-        <div className="glass-card rounded-xl overflow-hidden border-2 border-destructive/30">
-          <div className="p-4 border-b border-border bg-destructive/5">
-            <h3 className="font-semibold text-foreground text-sm flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-destructive" /> LIC 602A Expiring Within 30 Days
-            </h3>
-          </div>
-          <div className="divide-y divide-border">
-            {lic602Alerts.map(a => (
-              <div key={a.id} className="p-4 flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-foreground text-sm">{a.name}</p>
-                  <p className="text-xs text-muted-foreground">Room {a.room}</p>
-                </div>
-                <div className="text-right">
-                  {a.daysLeft <= 0 ? (
-                    <span className="text-xs font-bold text-destructive bg-destructive/10 px-2.5 py-1 rounded-full">
-                      EXPIRED
-                    </span>
-                  ) : a.daysLeft <= 7 ? (
-                    <span className="text-xs font-bold text-destructive bg-destructive/10 px-2.5 py-1 rounded-full">
-                      {a.daysLeft}d — URGENT
-                    </span>
-                  ) : (
-                    <span className="text-xs font-semibold text-destructive">
-                      {a.daysLeft} days left
-                    </span>
-                  )}
-                  <p className="text-xs text-muted-foreground mt-0.5">Exp: {a.lic602a_expiry}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* 90-Day Notice Countdown */}
       <div className="glass-card rounded-xl overflow-hidden">
