@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useOrgMembers, useLocations, Organization } from "@/hooks/useOrganizations";
-import { useApp } from "@/contexts/AppContext";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -28,7 +28,6 @@ const ROLE_COLORS: Record<string, string> = {
 const MembersManager = ({ org, onBack }: Props) => {
   const { members, loading, addMember, removeMember, updateMemberRole } = useOrgMembers(org.id);
   const { locations } = useLocations(org.id);
-  const { employees } = useApp();
 
   const [showDialog, setShowDialog] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState("");
@@ -36,10 +35,19 @@ const MembersManager = ({ org, onBack }: Props) => {
   const [selectedLocationId, setSelectedLocationId] = useState<string>("all");
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [allProfiles, setAllProfiles] = useState<{ user_id: string; display_name: string }[]>([]);
+
+  useEffect(() => {
+    const fetchProfiles = async () => {
+      const { data } = await supabase.from("profiles").select("user_id, display_name");
+      if (data) setAllProfiles(data);
+    };
+    fetchProfiles();
+  }, []);
 
   // Find users not yet in this org
   const existingUserIds = new Set(members.map(m => m.user_id));
-  const availableUsers = employees.filter(e => !existingUserIds.has(e.id));
+  const availableUsers = allProfiles.filter(p => !existingUserIds.has(p.user_id));
 
   const handleAdd = async () => {
     if (!selectedUserId) return;
@@ -168,7 +176,7 @@ const MembersManager = ({ org, onBack }: Props) => {
                     <SelectItem value="_none" disabled>No available users</SelectItem>
                   ) : (
                     availableUsers.map(u => (
-                      <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                      <SelectItem key={u.user_id} value={u.user_id}>{u.display_name}</SelectItem>
                     ))
                   )}
                 </SelectContent>
