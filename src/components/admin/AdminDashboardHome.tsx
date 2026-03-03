@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import BusinessIntelligence from "./BusinessIntelligence";
+
 
 const EXPENSE_CATEGORIES = ["Labor", "Food", "Supplies", "Utilities", "Rent", "Insurance", "Repairs", "Referral Fees", "Other"] as const;
 
@@ -312,9 +312,6 @@ const AdminDashboardHome = ({ onNavigate }: { onNavigate: (tab: string) => void 
           <p className="text-lg font-display font-bold text-foreground">{fmt(data.monthlyLaborCost)}</p>
         </div>
       )}
-
-      {/* ── Business Intelligence ── */}
-      <BusinessIntelligence onNavigate={onNavigate} onQuickExpense={() => setShowExpenseModal(true)} />
 
       {/* ── Expense Tracker ── */}
       <div className="space-y-3">
