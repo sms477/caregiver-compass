@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Pill, Users, Loader2 } from "lucide-react";
 import { ResidentBadges, AcuityTag, HospiceEmergencyCard, ComplianceCountdown } from "./ResidentBadges";
@@ -15,6 +16,11 @@ const ResidentsManager = () => {
   const [editResident, setEditResident] = useState<DBResident | null>(null);
   const [resName, setResName] = useState("");
   const [resRoom, setResRoom] = useState("");
+  const [resCareLevel, setResCareLevel] = useState("Basic");
+  const [resIsHospice, setResIsHospice] = useState(false);
+  const [resIsNonAmbulatory, setResIsNonAmbulatory] = useState(false);
+  const [resDnr, setResDnr] = useState(false);
+  const [resLic602a, setResLic602a] = useState("");
 
   const [showMedDialog, setShowMedDialog] = useState(false);
   const [medResident, setMedResident] = useState<DBResident | null>(null);
@@ -30,6 +36,11 @@ const ResidentsManager = () => {
     setEditResident(null);
     setResName("");
     setResRoom("");
+    setResCareLevel("Basic");
+    setResIsHospice(false);
+    setResIsNonAmbulatory(false);
+    setResDnr(false);
+    setResLic602a("");
     setShowResidentDialog(true);
   };
 
@@ -37,17 +48,31 @@ const ResidentsManager = () => {
     setEditResident(r);
     setResName(r.name);
     setResRoom(r.room);
+    setResCareLevel(r.care_level);
+    setResIsHospice(r.is_hospice);
+    setResIsNonAmbulatory(r.is_non_ambulatory);
+    setResDnr(r.dnr_on_file);
+    setResLic602a(r.lic602a_expiry || "");
     setShowResidentDialog(true);
   };
 
   const saveResident = async () => {
     if (!resName.trim() || !resRoom.trim()) return;
+    const payload = {
+      name: resName.trim(),
+      room: resRoom.trim(),
+      care_level: resCareLevel,
+      is_hospice: resIsHospice,
+      is_non_ambulatory: resIsNonAmbulatory,
+      dnr_on_file: resDnr,
+      lic602a_expiry: resLic602a || null,
+    };
     if (editResident) {
-      const { error } = await supabase.from("residents").update({ name: resName.trim(), room: resRoom.trim() }).eq("id", editResident.id);
+      const { error } = await supabase.from("residents").update(payload).eq("id", editResident.id);
       if (error) { toast.error("Failed to update resident"); return; }
       toast.success("Resident updated");
     } else {
-      const { error } = await supabase.from("residents").insert({ name: resName.trim(), room: resRoom.trim() });
+      const { error } = await supabase.from("residents").insert(payload);
       if (error) { toast.error("Failed to add resident"); return; }
       toast.success("Resident added");
     }
@@ -198,7 +223,7 @@ const ResidentsManager = () => {
           <DialogHeader>
             <DialogTitle>{editResident ? "Edit Resident" : "Add Resident"}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
             <div>
               <label className="text-sm font-medium text-foreground">Name</label>
               <Input value={resName} onChange={e => setResName(e.target.value)} placeholder="e.g. John Doe" />
@@ -206,6 +231,44 @@ const ResidentsManager = () => {
             <div>
               <label className="text-sm font-medium text-foreground">Room</label>
               <Input value={resRoom} onChange={e => setResRoom(e.target.value)} placeholder="e.g. Room 1" />
+            </div>
+
+            {/* Care Level */}
+            <div>
+              <label className="text-sm font-medium text-foreground">Care Level</label>
+              <Select value={resCareLevel} onValueChange={setResCareLevel}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Basic">Basic</SelectItem>
+                  <SelectItem value="Level 1">Level 1</SelectItem>
+                  <SelectItem value="Level 2">Level 2</SelectItem>
+                  <SelectItem value="High Acuity">High Acuity</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Checkboxes row */}
+            <div className="grid grid-cols-3 gap-3">
+              <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+                <Checkbox checked={resIsHospice} onCheckedChange={(v) => setResIsHospice(!!v)} />
+                Hospice
+              </label>
+              <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+                <Checkbox checked={resIsNonAmbulatory} onCheckedChange={(v) => setResIsNonAmbulatory(!!v)} />
+                Non-Ambulatory
+              </label>
+              <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+                <Checkbox checked={resDnr} onCheckedChange={(v) => setResDnr(!!v)} />
+                DNR on File
+              </label>
+            </div>
+
+            {/* LIC 602A Expiry */}
+            <div>
+              <label className="text-sm font-medium text-foreground">LIC 602A Expiry</label>
+              <Input type="date" value={resLic602a} onChange={e => setResLic602a(e.target.value)} />
             </div>
           </div>
           <DialogFooter>
