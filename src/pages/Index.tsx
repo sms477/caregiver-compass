@@ -17,9 +17,9 @@ const Index = ({ isAdmin, isReviewer, isSuperAdmin, signOut }: IndexProps) => {
         {/* Logo / Brand */}
         <div className="text-center space-y-2">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary text-primary-foreground mb-4">
-            <span className="text-2xl font-display font-black tracking-tight">K</span>
+            <span className="text-2xl font-display font-black tracking-tight">E</span>
           </div>
-          <h1 className="text-3xl font-display font-bold text-foreground tracking-tight">kova</h1>
+          <h1 className="text-3xl font-display font-bold text-foreground tracking-tight">EasyRCFE</h1>
           <p className="text-muted-foreground text-sm">
             Care Operations & Compliance
           </p>
@@ -55,7 +55,7 @@ const Index = ({ isAdmin, isReviewer, isSuperAdmin, signOut }: IndexProps) => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                    <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center">
-                     <span className="text-lg font-display font-black text-accent">K</span>
+                     <span className="text-lg font-display font-black text-accent">E</span>
                   </div>
                   <div>
                     <h2 className="text-lg font-semibold text-foreground">Administrator</h2>
@@ -76,7 +76,7 @@ const Index = ({ isAdmin, isReviewer, isSuperAdmin, signOut }: IndexProps) => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                     <span className="text-lg font-display font-black text-primary">K</span>
+                     <span className="text-lg font-display font-black text-primary">E</span>
                   </div>
                   <div>
                     <h2 className="text-lg font-semibold text-foreground">Reviewer</h2>
@@ -97,7 +97,7 @@ const Index = ({ isAdmin, isReviewer, isSuperAdmin, signOut }: IndexProps) => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-xl bg-primary text-primary-foreground flex items-center justify-center">
-                    <span className="text-lg font-display font-black">K</span>
+                    <span className="text-lg font-display font-black">E</span>
                   </div>
                   <div>
                     <h2 className="text-lg font-semibold text-foreground">Super Admin</h2>
