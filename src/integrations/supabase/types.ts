@@ -471,6 +471,73 @@ export type Database = {
           },
         ]
       }
+      notices_sent: {
+        Row: {
+          created_at: string
+          effective_date: string
+          id: string
+          location_id: string | null
+          new_care_surcharge: number
+          notes: string | null
+          notice_type: string
+          old_care_surcharge: number
+          resident_id: string
+          sent_date: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          effective_date: string
+          id?: string
+          location_id?: string | null
+          new_care_surcharge?: number
+          notes?: string | null
+          notice_type?: string
+          old_care_surcharge?: number
+          resident_id: string
+          sent_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          effective_date?: string
+          id?: string
+          location_id?: string | null
+          new_care_surcharge?: number
+          notes?: string | null
+          notice_type?: string
+          old_care_surcharge?: number
+          resident_id?: string
+          sent_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notices_sent_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notices_sent_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: false
+            referencedRelation: "resident_acuity_summary"
+            referencedColumns: ["resident_id"]
+          },
+          {
+            foreignKeyName: "notices_sent_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: false
+            referencedRelation: "residents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_memberships: {
         Row: {
           created_at: string
