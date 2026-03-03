@@ -47,6 +47,44 @@ export type Database = {
         }
         Relationships: []
       }
+      hospice_agencies: {
+        Row: {
+          created_at: string
+          id: string
+          location_id: string | null
+          name: string
+          nurse_phone_24h: string | null
+          office_phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          location_id?: string | null
+          name: string
+          nurse_phone_24h?: string | null
+          office_phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          location_id?: string | null
+          name?: string
+          nurse_phone_24h?: string | null
+          office_phone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hospice_agencies_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       incidents: {
         Row: {
           created_at: string
@@ -623,30 +661,64 @@ export type Database = {
       }
       residents: {
         Row: {
+          acuity_score: number
+          care_level: string
           created_at: string
+          dnr_on_file: boolean
+          hospice_agency_id: string | null
           id: string
+          is_hospice: boolean
+          is_non_ambulatory: boolean
+          last_assessment_date: string | null
+          lic602a_expiry: string | null
           location_id: string | null
           name: string
+          restricted_conditions: string[]
           room: string
           updated_at: string
         }
         Insert: {
+          acuity_score?: number
+          care_level?: string
           created_at?: string
+          dnr_on_file?: boolean
+          hospice_agency_id?: string | null
           id?: string
+          is_hospice?: boolean
+          is_non_ambulatory?: boolean
+          last_assessment_date?: string | null
+          lic602a_expiry?: string | null
           location_id?: string | null
           name: string
+          restricted_conditions?: string[]
           room: string
           updated_at?: string
         }
         Update: {
+          acuity_score?: number
+          care_level?: string
           created_at?: string
+          dnr_on_file?: boolean
+          hospice_agency_id?: string | null
           id?: string
+          is_hospice?: boolean
+          is_non_ambulatory?: boolean
+          last_assessment_date?: string | null
+          lic602a_expiry?: string | null
           location_id?: string | null
           name?: string
+          restricted_conditions?: string[]
           room?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "residents_hospice_agency_id_fkey"
+            columns: ["hospice_agency_id"]
+            isOneToOne: false
+            referencedRelation: "hospice_agencies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "residents_location_id_fkey"
             columns: ["location_id"]
