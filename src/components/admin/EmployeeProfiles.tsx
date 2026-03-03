@@ -1,5 +1,5 @@
 import { useApp } from "@/contexts/AppContext";
-import { Employee } from "@/types";
+import { Employee, US_STATES } from "@/types";
 import { useState } from "react";
 import { User, Mail, Phone, DollarSign, Edit2, Check, X, UserPlus, Loader2, Copy, Building2, Trash2 } from "lucide-react";
 import { formatCurrency } from "@/lib/payroll";
@@ -260,6 +260,39 @@ const EmployeeProfiles = () => {
 
                 {/* Details */}
                 <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground">Worker Type</label>
+                    {isEditing ? (
+                      <select
+                        value={editForm?.workerType || "employee"}
+                        onChange={e => setEditForm(prev => prev ? { ...prev, workerType: e.target.value as Employee["workerType"] } : null)}
+                        className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                      >
+                        <option value="employee">W-2 Employee</option>
+                        <option value="contractor">1099 Contractor</option>
+                      </select>
+                    ) : (
+                      <p className="font-medium text-foreground">
+                        {data.workerType === "contractor" ? "1099 Contractor" : "W-2 Employee"}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground">Work State</label>
+                    {isEditing ? (
+                      <select
+                        value={editForm?.workState || "CA"}
+                        onChange={e => setEditForm(prev => prev ? { ...prev, workState: e.target.value as Employee["workState"] } : null)}
+                        className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                      >
+                        {US_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    ) : (
+                      <p className="font-medium text-foreground">{data.workState || "CA"}</p>
+                    )}
+                  </div>
+
                   <div className="space-y-1">
                     <label className="text-xs text-muted-foreground">Pay Type</label>
                     {isEditing ? (

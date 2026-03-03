@@ -69,6 +69,15 @@ export interface EMARRecord {
 export type FilingStatus = 'single' | 'married' | 'head_of_household';
 export type PayType = 'hourly' | 'salaried';
 export type DeductionType = 'pre_tax' | 'post_tax';
+export type WorkerType = 'employee' | 'contractor';
+export type PayRunType = 'regular' | 'off_cycle' | 'bonus' | 'termination';
+
+export const US_STATES = [
+  'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD',
+  'MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC',
+  'SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC',
+] as const;
+export type USState = typeof US_STATES[number];
 
 export interface ShiftDifferential {
   label: string;        // e.g. "Night", "Weekend"
@@ -98,6 +107,8 @@ export interface Employee {
   name: string;
   email: string;
   phone: string;
+  workerType: WorkerType;
+  workState: USState;
   payType: PayType;
   hourlyRate: number;
   annualSalary: number;
@@ -204,6 +215,7 @@ export type PayRunStatus = 'draft' | 'reviewing' | 'approved' | 'paid';
 export interface PayRun {
   id: string;
   payPeriod: PayPeriod;
+  runType: PayRunType;
   status: PayRunStatus;
   lineItems: PayrollLineItem[];
   totalGrossPay: number;
