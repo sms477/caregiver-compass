@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Trash2, Users, Loader2, ArrowLeft, UserCircle } from "lucide-react";
+import { Plus, Trash2, Users, Loader2, ArrowLeft, UserCircle, Mail, Copy, Check } from "lucide-react";
 
 interface Props {
   org: Organization;
@@ -19,52 +19,68 @@ const ROLE_LABELS: Record<string, string> = {
   reviewer: "Reviewer",
 };
 
-const ROLE_COLORS: Record<string, string> = {
-  admin: "bg-accent/10 text-accent",
-  caregiver: "bg-primary/10 text-primary",
-  reviewer: "bg-secondary text-secondary-foreground",
-};
-
 const MembersManager = ({ org, onBack }: Props) => {
-  const { members, loading, addMember, removeMember, updateMemberRole } = useOrgMembers(org.id);
+  const { members, loading, removeMember, updateMemberRole, refresh } = useOrgMembers(org.id);
   const { locations } = useLocations(org.id);
 
   const [showDialog, setShowDialog] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState("");
-  const [selectedRole, setSelectedRole] = useState("caregiver");
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteName, setInviteName] = useState("");
+  const [selectedRole, setSelectedRole] = useState("admin");
   const [selectedLocationId, setSelectedLocationId] = useState<string>("all");
+  const [inviting, setInviting] = useState(false);
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [allProfiles, setAllProfiles] = useState<{ user_id: string; display_name: string }[]>([]);
 
-  useEffect(() => {
-    const fetchProfiles = async () => {
-      const { data } = await supabase.from("profiles").select("user_id, display_name");
-      if (data) setAllProfiles(data);
-    };
-    fetchProfiles();
-  }, []);
-
-  // Find users not yet in this org
-  const existingUserIds = new Set(members.map(m => m.user_id));
-  const availableUsers = allProfiles.filter(p => !existingUserIds.has(p.user_id));
-
-  const handleAdd = async () => {
-    if (!selectedUserId) return;
+  const handleInvite = async () => {
+    if (!inviteEmail.trim() || !inviteName.trim()) return;
+    setInviting(true);
     try {
-      await addMember(
-        selectedUserId,
-        selectedRole,
-        selectedLocationId === "all" ? null : selectedLocationId
-      );
-      toast.success("Member added to organization");
-      setShowDialog(false);
-      setSelectedUserId("");
-      setSelectedRole("caregiver");
-      setSelectedLocationId("all");
+      const { data, error } = await supabase.functions.invoke("invite-team-member", {
+        body: {
+          email: inviteEmail.trim(),
+          display_name: inviteName.trim(),
+          role: selectedRole,
+          org_id: org.id,
+          location_id: selectedLocationId === "all" ? null : selectedLocationId,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast.success(data?.message || "Member invited successfully");
+      setInviteLink(data?.invite_link || null);
+      await refresh();
+
+      if (!data?.invite_link) {
+        resetDialog();
+      }
     } catch (err: any) {
-      toast.error(err.message || "Failed to add member");
+      toast.error(err.message || "Failed to invite member");
+    } finally {
+      setInviting(false);
     }
+  };
+
+  const resetDialog = () => {
+    setShowDialog(false);
+    setInviteEmail("");
+    setInviteName("");
+    setSelectedRole("admin");
+    setSelectedLocationId("all");
+    setInviteLink(null);
+    setCopied(false);
+  };
+
+  const handleCopyLink = async () => {
+    if (!inviteLink) return;
+    await navigator.clipboard.writeText(inviteLink);
+    setCopied(true);
+    toast.success("Invite link copied!");
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleRemove = async () => {
@@ -112,18 +128,18 @@ const MembersManager = ({ org, onBack }: Props) => {
           </Button>
           <div>
             <h2 className="text-xl font-display font-bold text-foreground">{org.name} — Members</h2>
-            <p className="text-sm text-muted-foreground mt-1">Assign staff to this organization and set their roles.</p>
+            <p className="text-sm text-muted-foreground mt-1">Invite and manage team members for this organization.</p>
           </div>
         </div>
         <Button onClick={() => setShowDialog(true)} className="gap-2">
-          <Plus className="w-4 h-4" /> Add Member
+          <Plus className="w-4 h-4" /> Invite Member
         </Button>
       </div>
 
       {members.length === 0 ? (
         <div className="glass-card rounded-xl p-12 text-center space-y-3">
           <Users className="w-10 h-10 text-muted-foreground mx-auto" />
-          <p className="text-muted-foreground">No members assigned. Add team members to this organization.</p>
+          <p className="text-muted-foreground">No members assigned. Invite team members to this organization.</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -158,65 +174,94 @@ const MembersManager = ({ org, onBack }: Props) => {
         </div>
       )}
 
-      {/* Add Member Dialog */}
-      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+      {/* Invite Member Dialog */}
+      <Dialog open={showDialog} onOpenChange={open => { if (!open) resetDialog(); }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add Member to {org.name}</DialogTitle>
+            <DialogTitle>
+              {inviteLink ? "Invite Link Ready" : `Invite Member to ${org.name}`}
+            </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-foreground">Team Member</label>
-              <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a user..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableUsers.length === 0 ? (
-                    <SelectItem value="_none" disabled>No available users</SelectItem>
-                  ) : (
-                    availableUsers.map(u => (
-                      <SelectItem key={u.user_id} value={u.user_id}>{u.display_name}</SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-foreground">Role</label>
-              <Select value={selectedRole} onValueChange={setSelectedRole}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="admin">Admin — Full facility management</SelectItem>
-                  <SelectItem value="caregiver">Caregiver — Clock in, log tasks</SelectItem>
-                  <SelectItem value="reviewer">Reviewer — Read-only access</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-foreground">Location Access</label>
-              <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Locations (org-wide)</SelectItem>
-                  {locations.map(l => (
-                    <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground mt-1">
-                "All Locations" gives access to every facility in this organization.
+
+          {inviteLink ? (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Share this link with the new member so they can set their password and log in:
               </p>
+              <div className="flex gap-2">
+                <Input value={inviteLink} readOnly className="text-xs" />
+                <Button variant="outline" size="icon" onClick={handleCopyLink}>
+                  {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                </Button>
+              </div>
+              <DialogFooter>
+                <Button onClick={resetDialog}>Done</Button>
+              </DialogFooter>
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDialog(false)}>Cancel</Button>
-            <Button onClick={handleAdd} disabled={!selectedUserId}>Add Member</Button>
-          </DialogFooter>
+          ) : (
+            <>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-foreground">Email Address</label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      value={inviteEmail}
+                      onChange={e => setInviteEmail(e.target.value)}
+                      placeholder="admin@example.com"
+                      type="email"
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground">Display Name</label>
+                  <Input
+                    value={inviteName}
+                    onChange={e => setInviteName(e.target.value)}
+                    placeholder="Jane Smith"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground">Role</label>
+                  <Select value={selectedRole} onValueChange={setSelectedRole}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin">Admin — Full facility management</SelectItem>
+                      <SelectItem value="caregiver">Caregiver — Clock in, log tasks</SelectItem>
+                      <SelectItem value="reviewer">Reviewer — Read-only access</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground">Location Access</label>
+                  <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Locations (org-wide)</SelectItem>
+                      {locations.map(l => (
+                        <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    "All Locations" gives access to every facility in this organization.
+                  </p>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={resetDialog}>Cancel</Button>
+                <Button onClick={handleInvite} disabled={!inviteEmail.trim() || !inviteName.trim() || inviting}>
+                  {inviting && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                  Invite Member
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
 
