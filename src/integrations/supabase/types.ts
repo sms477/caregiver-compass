@@ -855,6 +855,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_can_access_location: {
+        Args: { _location_id: string; _user_id: string }
+        Returns: boolean
+      }
+      admin_can_access_org: {
+        Args: { _org_id: string; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
