@@ -184,6 +184,77 @@ export type Database = {
           },
         ]
       }
+      family_contacts: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          location_id: string | null
+          name: string
+          notes: string | null
+          phone: string | null
+          prospect_id: string | null
+          relationship: string | null
+          resident_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          location_id?: string | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          prospect_id?: string | null
+          relationship?: string | null
+          resident_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          location_id?: string | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          prospect_id?: string | null
+          relationship?: string | null
+          resident_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_contacts_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "family_contacts_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "family_contacts_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: false
+            referencedRelation: "resident_acuity_summary"
+            referencedColumns: ["resident_id"]
+          },
+          {
+            foreignKeyName: "family_contacts_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: false
+            referencedRelation: "residents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hospice_agencies: {
         Row: {
           created_at: string
@@ -954,6 +1025,120 @@ export type Database = {
           },
         ]
       }
+      prospect_notes: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          note: string
+          note_type: string
+          prospect_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          note: string
+          note_type?: string
+          prospect_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          note?: string
+          note_type?: string
+          prospect_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prospect_notes_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prospects: {
+        Row: {
+          assigned_staff_id: string | null
+          converted_at: string | null
+          converted_resident_id: string | null
+          created_at: string
+          email: string | null
+          id: string
+          location_id: string | null
+          name: string
+          notes: string | null
+          phone: string | null
+          preferred_move_in_date: string | null
+          priority: Database["public"]["Enums"]["prospect_priority"]
+          source: Database["public"]["Enums"]["prospect_source"]
+          stage: Database["public"]["Enums"]["prospect_stage"]
+          tags: string[]
+          updated_at: string
+        }
+        Insert: {
+          assigned_staff_id?: string | null
+          converted_at?: string | null
+          converted_resident_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          location_id?: string | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          preferred_move_in_date?: string | null
+          priority?: Database["public"]["Enums"]["prospect_priority"]
+          source?: Database["public"]["Enums"]["prospect_source"]
+          stage?: Database["public"]["Enums"]["prospect_stage"]
+          tags?: string[]
+          updated_at?: string
+        }
+        Update: {
+          assigned_staff_id?: string | null
+          converted_at?: string | null
+          converted_resident_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          location_id?: string | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          preferred_move_in_date?: string | null
+          priority?: Database["public"]["Enums"]["prospect_priority"]
+          source?: Database["public"]["Enums"]["prospect_source"]
+          stage?: Database["public"]["Enums"]["prospect_stage"]
+          tags?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prospects_converted_resident_id_fkey"
+            columns: ["converted_resident_id"]
+            isOneToOne: false
+            referencedRelation: "resident_acuity_summary"
+            referencedColumns: ["resident_id"]
+          },
+          {
+            foreignKeyName: "prospects_converted_resident_id_fkey"
+            columns: ["converted_resident_id"]
+            isOneToOne: false
+            referencedRelation: "residents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prospects_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       residents: {
         Row: {
           acuity_score: number
@@ -1247,6 +1432,60 @@ export type Database = {
         }
         Relationships: []
       }
+      tours: {
+        Row: {
+          assigned_staff_id: string | null
+          assigned_staff_name: string | null
+          created_at: string
+          id: string
+          location_id: string | null
+          notes: string | null
+          prospect_id: string
+          scheduled_at: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_staff_id?: string | null
+          assigned_staff_name?: string | null
+          created_at?: string
+          id?: string
+          location_id?: string | null
+          notes?: string | null
+          prospect_id: string
+          scheduled_at: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_staff_id?: string | null
+          assigned_staff_name?: string | null
+          created_at?: string
+          id?: string
+          location_id?: string | null
+          notes?: string | null
+          prospect_id?: string
+          scheduled_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tours_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tours_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -1322,6 +1561,14 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "caregiver" | "reviewer" | "super_admin"
+      prospect_priority: "low" | "medium" | "high"
+      prospect_source: "referral" | "website" | "walk_in" | "phone" | "other"
+      prospect_stage:
+        | "new"
+        | "contacted"
+        | "tour_scheduled"
+        | "follow_up"
+        | "converted"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1450,6 +1697,15 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "caregiver", "reviewer", "super_admin"],
+      prospect_priority: ["low", "medium", "high"],
+      prospect_source: ["referral", "website", "walk_in", "phone", "other"],
+      prospect_stage: [
+        "new",
+        "contacted",
+        "tour_scheduled",
+        "follow_up",
+        "converted",
+      ],
     },
   },
 } as const
