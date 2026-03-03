@@ -158,7 +158,7 @@ const CaregiverView = () => {
         <button onClick={() => setRole(null)} className="flex items-center gap-1 text-muted-foreground text-sm">
           <ArrowLeft className="w-4 h-4" /> Back
         </button>
-        <h1 className="font-display font-bold text-foreground tracking-tight">kova</h1>
+        <h1 className="font-display font-bold text-foreground tracking-tight">EasyRCFE</h1>
         <span className="text-sm font-medium text-foreground">{caregiverName}</span>
       </header>
 

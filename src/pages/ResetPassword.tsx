@@ -80,10 +80,10 @@ const ResetPassword = () => {
       <div className="w-full max-w-sm space-y-8 animate-slide-up">
         <div className="text-center space-y-2">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary text-primary-foreground mb-4">
-            <span className="text-2xl font-display font-black tracking-tight">K</span>
+            <span className="text-2xl font-display font-black tracking-tight">E</span>
           </div>
           <h1 className="text-3xl font-display font-bold text-foreground tracking-tight">
-            {displayName ? `Welcome, ${displayName}!` : "Welcome to Kova"}
+            {displayName ? `Welcome, ${displayName}!` : "Welcome to EasyRCFE"}
           </h1>
           <p className="text-muted-foreground text-sm">
             Set your password to get started.

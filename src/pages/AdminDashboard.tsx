@@ -101,9 +101,9 @@ const AdminDashboard = () => {
         <div className="p-5 border-b border-border">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center">
-              <span className="text-sm font-display font-black">K</span>
+              <span className="text-sm font-display font-black">E</span>
             </div>
-            <span className="font-display font-bold text-foreground text-lg tracking-tight">kova</span>
+            <span className="font-display font-bold text-foreground text-lg tracking-tight">EasyRCFE</span>
           </div>
           <p className="text-xs text-muted-foreground mt-1">Operations & Compliance</p>
         </div>
@@ -145,7 +145,7 @@ const AdminDashboard = () => {
           <button onClick={() => setRole(null)} className="text-muted-foreground">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <span className="font-display font-bold text-foreground tracking-tight">kova</span>
+          <span className="font-display font-bold text-foreground tracking-tight">EasyRCFE</span>
           <div className="w-5" />
         </div>
         <div className="flex overflow-x-auto px-2 pb-2 gap-1">
