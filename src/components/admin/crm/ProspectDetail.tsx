@@ -16,15 +16,13 @@ interface Props {
   prospect: Prospect;
   crm: ReturnType<typeof import("@/hooks/useCRM").useCRM>;
   onClose: () => void;
+  onConvert?: (prospect: Prospect) => void;
 }
 
-const ProspectDetail = ({ prospect, crm, onClose }: Props) => {
+const ProspectDetail = ({ prospect, crm, onClose, onConvert }: Props) => {
   const [notes, setNotes] = useState<ProspectNote[]>([]);
   const [newNote, setNewNote] = useState("");
   const [stage, setStage] = useState<ProspectStage>(prospect.stage);
-  const [showConvert, setShowConvert] = useState(false);
-  const [room, setRoom] = useState("");
-  const [careLevel, setCareLevel] = useState("Basic");
   const [showTour, setShowTour] = useState(false);
   const [tourDate, setTourDate] = useState("");
   const [tourStaff, setTourStaff] = useState("");
@@ -41,6 +39,11 @@ const ProspectDetail = ({ prospect, crm, onClose }: Props) => {
   }, [prospect.id]);
 
   const handleStageChange = async (s: ProspectStage) => {
+    if (s === "converted" && onConvert) {
+      onConvert(prospect);
+      onClose();
+      return;
+    }
     setStage(s);
     await crm.updateStage(prospect.id, s);
     toast({ title: "Stage updated", description: `Moved to ${STAGE_CONFIG[s].label}` });
@@ -54,11 +57,9 @@ const ProspectDetail = ({ prospect, crm, onClose }: Props) => {
     setNotes(updated);
   };
 
-  const handleConvert = async () => {
-    if (!room.trim()) return;
-    const err = await crm.convertProspect(prospect, room.trim(), careLevel);
-    if (!err) {
-      toast({ title: "🎉 Prospect Converted!", description: `${prospect.name} is now a resident.` });
+  const handleConvertClick = () => {
+    if (onConvert) {
+      onConvert(prospect);
       onClose();
     }
   };
@@ -242,44 +243,13 @@ const ProspectDetail = ({ prospect, crm, onClose }: Props) => {
             </Button>
 
             {stage !== "converted" ? (
-              <Button size="sm" className="gap-1" onClick={() => setShowConvert(true)}>
+              <Button size="sm" className="gap-1" onClick={handleConvertClick}>
                 <UserCheck className="w-3.5 h-3.5" /> Convert to Resident
               </Button>
             ) : (
               <Badge className="bg-green-100 text-green-700 border-0">Converted ✓</Badge>
             )}
           </div>
-
-          {/* Convert Form */}
-          {showConvert && (
-            <div className="bg-green-50 dark:bg-green-950/20 rounded-xl p-4 space-y-3 border border-green-200 dark:border-green-800">
-              <p className="text-sm font-medium text-foreground">Convert {prospect.name} to Resident</p>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">Room Number *</Label>
-                  <Input value={room} onChange={e => setRoom(e.target.value)} placeholder="e.g. 101A" className="h-9" />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Care Level</Label>
-                  <Select value={careLevel} onValueChange={setCareLevel}>
-                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Basic">Basic</SelectItem>
-                      <SelectItem value="Moderate">Moderate</SelectItem>
-                      <SelectItem value="Enhanced">Enhanced</SelectItem>
-                      <SelectItem value="Full">Full</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="ghost" size="sm" onClick={() => setShowConvert(false)}>Cancel</Button>
-                <Button size="sm" onClick={handleConvert} disabled={!room.trim()} className="bg-green-600 hover:bg-green-700">
-                  Confirm Conversion
-                </Button>
-              </div>
-            </div>
-          )}
         </div>
       </DialogContent>
     </Dialog>

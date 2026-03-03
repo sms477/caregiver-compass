@@ -19,7 +19,18 @@ interface ResidentInvoice {
   created_at: string;
 }
 
-const ResidentsManager = () => {
+export interface ProspectConversionData {
+  prospectId: string;
+  name: string;
+  locationId: string | null;
+}
+
+interface Props {
+  conversionData?: ProspectConversionData | null;
+  onConversionComplete?: () => void;
+}
+
+const ResidentsManager = ({ conversionData, onConversionComplete }: Props) => {
   const { residents, loading, refresh } = useResidents();
   const [showResidentDialog, setShowResidentDialog] = useState(false);
   const [editResident, setEditResident] = useState<DBResident | null>(null);
@@ -30,6 +41,13 @@ const ResidentsManager = () => {
   const [resIsNonAmbulatory, setResIsNonAmbulatory] = useState(false);
   const [resDnr, setResDnr] = useState(false);
   const [resLic602a, setResLic602a] = useState("");
+  const [resBaseRent, setResBaseRent] = useState("");
+  const [resSecurityDeposit, setResSecurityDeposit] = useState("");
+  const [savingResident, setSavingResident] = useState(false);
+
+  // Track the prospect being converted (set from conversionData)
+  const [pendingProspectId, setPendingProspectId] = useState<string | null>(null);
+  const [pendingLocationId, setPendingLocationId] = useState<string | null>(null);
 
   const [showMedDialog, setShowMedDialog] = useState(false);
   const [medResident, setMedResident] = useState<DBResident | null>(null);
@@ -42,6 +60,25 @@ const ResidentsManager = () => {
   const [billingHistory, setBillingHistory] = useState<Record<string, ResidentInvoice[]>>({});
   const [expandedBilling, setExpandedBilling] = useState<string | null>(null);
   const [loadingBilling, setLoadingBilling] = useState<string | null>(null);
+
+  // Auto-open the Add Resident dialog when conversionData is provided
+  useEffect(() => {
+    if (conversionData) {
+      setEditResident(null);
+      setResName(conversionData.name);
+      setResRoom("");
+      setResCareLevel("Basic");
+      setResIsHospice(false);
+      setResIsNonAmbulatory(false);
+      setResDnr(false);
+      setResLic602a("");
+      setResBaseRent("");
+      setResSecurityDeposit("");
+      setPendingProspectId(conversionData.prospectId);
+      setPendingLocationId(conversionData.locationId);
+      setShowResidentDialog(true);
+    }
+  }, [conversionData]);
 
   const loadBillingHistory = async (residentId: string) => {
     if (expandedBilling === residentId) {
@@ -69,6 +106,10 @@ const ResidentsManager = () => {
     setResIsNonAmbulatory(false);
     setResDnr(false);
     setResLic602a("");
+    setResBaseRent("");
+    setResSecurityDeposit("");
+    setPendingProspectId(null);
+    setPendingLocationId(null);
     setShowResidentDialog(true);
   };
 
@@ -81,11 +122,17 @@ const ResidentsManager = () => {
     setResIsNonAmbulatory(r.is_non_ambulatory);
     setResDnr(r.dnr_on_file);
     setResLic602a(r.lic602a_expiry || "");
+    setResBaseRent("");
+    setResSecurityDeposit("");
+    setPendingProspectId(null);
+    setPendingLocationId(null);
     setShowResidentDialog(true);
   };
 
   const saveResident = async () => {
     if (!resName.trim() || !resRoom.trim()) return;
+    setSavingResident(true);
+
     const payload = {
       name: resName.trim(),
       room: resRoom.trim(),
@@ -94,18 +141,72 @@ const ResidentsManager = () => {
       is_non_ambulatory: resIsNonAmbulatory,
       dnr_on_file: resDnr,
       lic602a_expiry: resLic602a || null,
+      ...(pendingLocationId ? { location_id: pendingLocationId } : {}),
     };
+
     if (editResident) {
       const { error } = await supabase.from("residents").update(payload).eq("id", editResident.id);
-      if (error) { toast.error("Failed to update resident"); return; }
+      if (error) { toast.error("Failed to update resident"); setSavingResident(false); return; }
       toast.success("Resident updated");
     } else {
-      const { error } = await supabase.from("residents").insert(payload);
-      if (error) { toast.error("Failed to add resident"); return; }
-      toast.success("Resident added");
+      // Create resident
+      const { data: newResident, error } = await supabase
+        .from("residents")
+        .insert(payload)
+        .select()
+        .single();
+      if (error || !newResident) { toast.error("Failed to add resident"); setSavingResident(false); return; }
+
+      const residentId = (newResident as any).id;
+
+      // Auto-create contract if rent or deposit provided
+      const baseRent = parseFloat(resBaseRent) || 0;
+      const securityDeposit = parseFloat(resSecurityDeposit) || 0;
+      if (baseRent > 0 || securityDeposit > 0) {
+        const { error: contractErr } = await supabase.from("contracts").insert({
+          resident_id: residentId,
+          base_rent: baseRent,
+          security_deposit: securityDeposit,
+          ...(pendingLocationId ? { location_id: pendingLocationId } : {}),
+        });
+        if (contractErr) {
+          toast.error("Resident created but contract failed: " + contractErr.message);
+        }
+      }
+
+      // Update prospect status if this came from CRM conversion
+      if (pendingProspectId) {
+        await supabase.from("prospects").update({
+          stage: "converted" as any,
+          converted_resident_id: residentId,
+          converted_at: new Date().toISOString(),
+        }).eq("id", pendingProspectId);
+
+        // Link family contacts
+        await supabase.from("family_contacts").update({
+          resident_id: residentId,
+        } as any).eq("prospect_id", pendingProspectId);
+      }
+
+      toast.success("🎉 Resident added" + (baseRent > 0 ? " with contract!" : "!"));
     }
+
     setShowResidentDialog(false);
+    setSavingResident(false);
     refresh();
+
+    // If this was a CRM conversion, notify parent to redirect to billing
+    if (pendingProspectId && onConversionComplete) {
+      onConversionComplete();
+    }
+  };
+
+  const handleDialogClose = (open: boolean) => {
+    if (!open) {
+      setShowResidentDialog(false);
+      setPendingProspectId(null);
+      setPendingLocationId(null);
+    }
   };
 
   const deleteResident = async (id: string) => {
@@ -187,9 +288,7 @@ const ResidentsManager = () => {
         <div className="space-y-4">
           {residents.map(r => (
             <div key={r.id} className="glass-card rounded-xl p-4 space-y-3">
-              {/* Hospice Emergency Card */}
               <HospiceEmergencyCard resident={r} />
-
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
@@ -308,12 +407,19 @@ const ResidentsManager = () => {
       )}
 
       {/* Resident Dialog */}
-      <Dialog open={showResidentDialog} onOpenChange={setShowResidentDialog}>
+      <Dialog open={showResidentDialog} onOpenChange={handleDialogClose}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editResident ? "Edit Resident" : "Add Resident"}</DialogTitle>
+            <DialogTitle>
+              {editResident ? "Edit Resident" : pendingProspectId ? "Convert Prospect to Resident" : "Add Resident"}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+            {pendingProspectId && (
+              <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
+                <p className="text-xs text-primary font-medium">🎉 Converting from CRM — a contract will be created automatically.</p>
+              </div>
+            )}
             <div>
               <label className="text-sm font-medium text-foreground">Name</label>
               <Input value={resName} onChange={e => setResName(e.target.value)} placeholder="e.g. John Doe" />
@@ -360,10 +466,44 @@ const ResidentsManager = () => {
               <label className="text-sm font-medium text-foreground">LIC 602A Expiry</label>
               <Input type="date" value={resLic602a} onChange={e => setResLic602a(e.target.value)} />
             </div>
+
+            {/* Billing fields */}
+            {!editResident && (
+              <>
+                <div className="border-t border-border pt-4">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Billing / Contract</p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-sm font-medium text-foreground">Base Monthly Rent</label>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={resBaseRent}
+                      onChange={e => setResBaseRent(e.target.value)}
+                      placeholder="e.g. 4500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-foreground">Security Deposit</label>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={resSecurityDeposit}
+                      onChange={e => setResSecurityDeposit(e.target.value)}
+                      placeholder="e.g. 2000"
+                    />
+                  </div>
+                </div>
+              </>
+            )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowResidentDialog(false)}>Cancel</Button>
-            <Button onClick={saveResident} disabled={!resName.trim() || !resRoom.trim()}>
+            <Button variant="outline" onClick={() => handleDialogClose(false)}>Cancel</Button>
+            <Button onClick={saveResident} disabled={!resName.trim() || !resRoom.trim() || savingResident}>
+              {savingResident ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               {editResident ? "Update" : "Add"}
             </Button>
           </DialogFooter>
