@@ -2,17 +2,28 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Users, Pill, DollarSign, AlertTriangle, TrendingUp,
-  Clock, Shield, Activity, Loader2, ChevronRight, BedDouble, Plus, Wallet
+  Clock, Shield, Activity, Loader2, ChevronRight, BedDouble, Plus, Wallet, Repeat, Zap, Trash2
 } from "lucide-react";
 import { differenceInDays, format, parseISO, startOfMonth, endOfMonth } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import BusinessIntelligence from "./BusinessIntelligence";
 
-const EXPENSE_CATEGORIES = ["Labor", "Food", "Supplies", "Utilities", "Rent", "Other"] as const;
+const EXPENSE_CATEGORIES = ["Labor", "Food", "Supplies", "Utilities", "Rent", "Insurance", "Repairs", "Referral Fees", "Other"] as const;
+
+interface ExpenseRow {
+  id: string;
+  category: string;
+  description: string | null;
+  amount: number;
+  is_recurring: boolean;
+  recurring_label: string | null;
+  expense_date: string;
+}
 
 interface DashboardData {
   residents: { id: string; name: string; room: string; care_level: string; acuity_score: number; lic602a_expiry: string | null }[];
@@ -22,6 +33,8 @@ interface DashboardData {
   monthlyRevenue: number;
   monthlyExpenses: number;
   monthlyLaborCost: number;
+  recurringExpenses: ExpenseRow[];
+  variableExpenses: ExpenseRow[];
   medPassProgress: { done: number; total: number };
   openIncidents: { id: string; resident_name: string; incident_type: string; occurred_at: string; description: string }[];
   acuityTrends: { resident_id: string; resident_name: string; room: string; current_score: number; calculated_score: number; current_level: string; calculated_level: string }[];
@@ -38,6 +51,8 @@ const AdminDashboardHome = ({ onNavigate }: { onNavigate: (tab: string) => void 
   const [expDescription, setExpDescription] = useState("");
   const [expDate, setExpDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [savingExpense, setSavingExpense] = useState(false);
+  const [expIsRecurring, setExpIsRecurring] = useState(false);
+  const [expRecurringLabel, setExpRecurringLabel] = useState("");
 
   useEffect(() => {
     const load = async () => {
@@ -65,7 +80,7 @@ const AdminDashboardHome = ({ onNavigate }: { onNavigate: (tab: string) => void 
         supabase.from("resident_acuity_summary").select("*"),
         supabase.from("daily_care_logs").select("id, resident_id").gte("log_date", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split("T")[0]),
         supabase.from("staff_certifications").select("id, cert_type, expiry_date, profiles(display_name)").order("expiry_date"),
-        supabase.from("expenses").select("amount, category").gte("expense_date", monthStart).lte("expense_date", monthEnd),
+        supabase.from("expenses").select("id, amount, category, description, is_recurring, recurring_label, expense_date").or(`and(expense_date.gte.${monthStart},expense_date.lte.${monthEnd}),is_recurring.eq.true`),
         supabase.from("pay_runs").select("total_net_pay, status").in("status", ["approved", "paid"]).gte("created_at", monthStart),
       ]);
 
@@ -78,10 +93,17 @@ const AdminDashboardHome = ({ onNavigate }: { onNavigate: (tab: string) => void 
         (sum, c) => sum + Number(c.base_rent) + Number(c.current_care_surcharge), 0
       );
 
-      // Monthly expenses
-      const monthlyExpenses = ((expenses as any[]) || []).reduce(
-        (sum, e) => sum + Number(e.amount), 0
-      );
+      // Parse expenses into recurring vs variable
+      const allExpenses: ExpenseRow[] = ((expenses as any[]) || []).map((e: any) => ({
+        id: e.id, category: e.category, description: e.description,
+        amount: Number(e.amount), is_recurring: !!e.is_recurring,
+        recurring_label: e.recurring_label, expense_date: e.expense_date,
+      }));
+      const recurringExpenses = allExpenses.filter(e => e.is_recurring);
+      const variableExpenses = allExpenses.filter(e => !e.is_recurring);
+
+      // Monthly expenses (recurring always count + variable from this month)
+      const monthlyExpenses = allExpenses.reduce((sum, e) => sum + e.amount, 0);
 
       // Monthly labor cost from approved pay runs
       const monthlyLaborCost = ((payRuns as any[]) || []).reduce(
@@ -151,6 +173,8 @@ const AdminDashboardHome = ({ onNavigate }: { onNavigate: (tab: string) => void 
         monthlyRevenue,
         monthlyExpenses,
         monthlyLaborCost,
+        recurringExpenses,
+        variableExpenses,
         medPassProgress: { done: medPassDone, total: resList.length },
         openIncidents: (incidents || []).map((i: any) => ({
           id: i.id,
@@ -282,6 +306,96 @@ const AdminDashboardHome = ({ onNavigate }: { onNavigate: (tab: string) => void 
 
       {/* ── Business Intelligence ── */}
       <BusinessIntelligence onNavigate={onNavigate} onQuickExpense={() => setShowExpenseModal(true)} />
+
+      {/* ── Expense Tracker ── */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-display font-bold text-foreground flex items-center gap-2">
+            <DollarSign className="w-5 h-5 text-primary" /> Expense Tracker
+          </h2>
+          <Button size="sm" className="h-8 text-xs gap-1.5" onClick={() => setShowExpenseModal(true)}>
+            <Plus className="w-3.5 h-3.5" /> New Expense
+          </Button>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Recurring (Fixed) */}
+          <div className="glass-card rounded-xl overflow-hidden">
+            <div className="p-4 border-b border-border bg-primary/5">
+              <h3 className="font-semibold text-foreground text-sm flex items-center gap-2">
+                <Repeat className="w-4 h-4 text-primary" /> Recurring (Fixed)
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">Monthly costs included every period</p>
+            </div>
+            {data.recurringExpenses.length === 0 ? (
+              <div className="p-6 text-center text-muted-foreground text-sm">
+                No recurring expenses yet.
+              </div>
+            ) : (
+              <div className="divide-y divide-border">
+                {data.recurringExpenses.map(exp => (
+                  <div key={exp.id} className="p-3 flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">
+                        {exp.recurring_label || exp.category}
+                      </p>
+                      {exp.description && (
+                        <p className="text-xs text-muted-foreground">{exp.description}</p>
+                      )}
+                    </div>
+                    <p className="text-sm font-semibold text-foreground">{fmt(exp.amount)}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            {data.recurringExpenses.length > 0 && (
+              <div className="p-3 border-t border-border bg-muted/30 flex items-center justify-between">
+                <p className="text-xs font-semibold text-muted-foreground uppercase">Total Fixed</p>
+                <p className="text-sm font-bold text-foreground">
+                  {fmt(data.recurringExpenses.reduce((s, e) => s + e.amount, 0))}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* One-Off (Variable) */}
+          <div className="glass-card rounded-xl overflow-hidden">
+            <div className="p-4 border-b border-border bg-accent/5">
+              <h3 className="font-semibold text-foreground text-sm flex items-center gap-2">
+                <Zap className="w-4 h-4 text-accent" /> One-Off (Variable)
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">This month only</p>
+            </div>
+            {data.variableExpenses.length === 0 ? (
+              <div className="p-6 text-center text-muted-foreground text-sm">
+                No one-off expenses this month.
+              </div>
+            ) : (
+              <div className="divide-y divide-border">
+                {data.variableExpenses.map(exp => (
+                  <div key={exp.id} className="p-3 flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{exp.category}</p>
+                      {exp.description && (
+                        <p className="text-xs text-muted-foreground">{exp.description}</p>
+                      )}
+                      <p className="text-[10px] text-muted-foreground">{exp.expense_date}</p>
+                    </div>
+                    <p className="text-sm font-semibold text-foreground">{fmt(exp.amount)}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            {data.variableExpenses.length > 0 && (
+              <div className="p-3 border-t border-border bg-muted/30 flex items-center justify-between">
+                <p className="text-xs font-semibold text-muted-foreground uppercase">Total Variable</p>
+                <p className="text-sm font-bold text-foreground">
+                  {fmt(data.variableExpenses.reduce((s, e) => s + e.amount, 0))}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* ── Main Content Grid ── */}
       <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
@@ -462,9 +576,27 @@ const AdminDashboardHome = ({ onNavigate }: { onNavigate: (tab: string) => void 
       <Dialog open={showExpenseModal} onOpenChange={setShowExpenseModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Quick-Log Expense</DialogTitle>
+            <DialogTitle>New Expense</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {/* Recurring toggle */}
+            <div className="flex items-center justify-between rounded-lg border border-border p-3">
+              <div>
+                <p className="text-sm font-medium text-foreground">Is this a recurring monthly expense?</p>
+                <p className="text-xs text-muted-foreground">
+                  {expIsRecurring ? "Will be included in every month's Net Profit." : "Only subtracted from this month's profit."}
+                </p>
+              </div>
+              <Switch checked={expIsRecurring} onCheckedChange={setExpIsRecurring} />
+            </div>
+
+            {expIsRecurring && (
+              <div>
+                <label className="text-sm font-medium text-foreground">Label (e.g. Mortgage, Insurance)</label>
+                <Input value={expRecurringLabel} onChange={e => setExpRecurringLabel(e.target.value)} placeholder="e.g. Mortgage Payment" />
+              </div>
+            )}
+
             <div>
               <label className="text-sm font-medium text-foreground">Category</label>
               <Select value={expCategory} onValueChange={setExpCategory}>
@@ -484,10 +616,12 @@ const AdminDashboardHome = ({ onNavigate }: { onNavigate: (tab: string) => void 
               <label className="text-sm font-medium text-foreground">Description (optional)</label>
               <Input value={expDescription} onChange={e => setExpDescription(e.target.value)} placeholder="e.g. Costco grocery run" />
             </div>
-            <div>
-              <label className="text-sm font-medium text-foreground">Date</label>
-              <Input type="date" value={expDate} onChange={e => setExpDate(e.target.value)} />
-            </div>
+            {!expIsRecurring && (
+              <div>
+                <label className="text-sm font-medium text-foreground">Date</label>
+                <Input type="date" value={expDate} onChange={e => setExpDate(e.target.value)} />
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowExpenseModal(false)}>Cancel</Button>
@@ -500,23 +634,26 @@ const AdminDashboardHome = ({ onNavigate }: { onNavigate: (tab: string) => void 
                   category: expCategory,
                   amount: parseFloat(expAmount),
                   description: expDescription.trim() || null,
-                  expense_date: expDate,
+                  expense_date: expIsRecurring ? format(startOfMonth(new Date()), "yyyy-MM-dd") : expDate,
                   created_by: user?.id || "",
-                });
+                  is_recurring: expIsRecurring,
+                  recurring_label: expIsRecurring ? (expRecurringLabel.trim() || expCategory) : null,
+                } as any);
                 setSavingExpense(false);
                 if (error) { toast.error("Failed to log expense"); return; }
-                toast.success("💰 Expense logged!");
+                toast.success(expIsRecurring ? "📌 Recurring expense added!" : "💰 Expense logged!");
                 setShowExpenseModal(false);
                 setExpAmount("");
                 setExpDescription("");
                 setExpCategory("Supplies");
                 setExpDate(format(new Date(), "yyyy-MM-dd"));
-                // Refresh dashboard data
+                setExpIsRecurring(false);
+                setExpRecurringLabel("");
                 window.location.reload();
               }}
             >
               {savingExpense ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Log Expense
+              {expIsRecurring ? "Add Recurring" : "Log Expense"}
             </Button>
           </DialogFooter>
         </DialogContent>

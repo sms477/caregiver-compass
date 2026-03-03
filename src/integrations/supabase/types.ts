@@ -193,7 +193,9 @@ export type Database = {
           description: string | null
           expense_date: string
           id: string
+          is_recurring: boolean
           location_id: string | null
+          recurring_label: string | null
           updated_at: string
         }
         Insert: {
@@ -204,7 +206,9 @@ export type Database = {
           description?: string | null
           expense_date?: string
           id?: string
+          is_recurring?: boolean
           location_id?: string | null
+          recurring_label?: string | null
           updated_at?: string
         }
         Update: {
@@ -215,7 +219,9 @@ export type Database = {
           description?: string | null
           expense_date?: string
           id?: string
+          is_recurring?: boolean
           location_id?: string | null
+          recurring_label?: string | null
           updated_at?: string
         }
         Relationships: [
