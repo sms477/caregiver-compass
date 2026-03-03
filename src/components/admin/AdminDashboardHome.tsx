@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Users, Pill, DollarSign, AlertTriangle, TrendingUp,
-  Clock, Shield, Activity, Loader2, ChevronRight, BedDouble, Plus, Wallet, Repeat, Zap, Trash2
+  Clock, Shield, Activity, Loader2, ChevronRight, BedDouble, Plus, Wallet, Repeat, Zap, Trash2, Calendar
 } from "lucide-react";
 import { differenceInDays, format, parseISO, startOfMonth, endOfMonth } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,7 @@ interface DashboardData {
   acuityTrends: { resident_id: string; resident_name: string; room: string; current_score: number; calculated_score: number; current_level: string; calculated_level: string }[];
   pendingIncreases: { resident_name: string; current_care_surcharge: number; pending_care_surcharge: number; increase_effective_date: string; daysLeft: number }[];
   complianceDeadlines: { type: string; name: string; expiry: string; daysLeft: number; category: "resident" | "staff" }[];
+  upcomingTours: { id: string; prospect_name: string; scheduled_at: string; assigned_staff_name: string | null }[];
 }
 
 const AdminDashboardHome = ({ onNavigate }: { onNavigate: (tab: string) => void }) => {
@@ -72,6 +73,7 @@ const AdminDashboardHome = ({ onNavigate }: { onNavigate: (tab: string) => void 
         { data: staffCerts },
         { data: expenses },
         { data: payRuns },
+        { data: toursData },
       ] = await Promise.all([
         supabase.from("residents").select("id, name, room, care_level, acuity_score, lic602a_expiry").order("name"),
         supabase.from("shifts").select("id, caregiver_id, clock_in, clock_out").is("clock_out", null),
@@ -82,6 +84,7 @@ const AdminDashboardHome = ({ onNavigate }: { onNavigate: (tab: string) => void 
         supabase.from("staff_certifications").select("id, cert_type, expiry_date, profiles(display_name)").order("expiry_date"),
         supabase.from("expenses").select("id, amount, category, description, is_recurring, recurring_label, expense_date").or(`and(expense_date.gte.${monthStart},expense_date.lte.${monthEnd}),is_recurring.eq.true`),
         supabase.from("pay_runs").select("total_net_pay, status").in("status", ["approved", "paid"]).gte("created_at", monthStart),
+        supabase.from("tours").select("id, scheduled_at, status, assigned_staff_name, prospect_id, prospects(name)").eq("status", "scheduled").gte("scheduled_at", new Date().toISOString()).order("scheduled_at").limit(5),
       ]);
 
       const resList = residents || [];
@@ -186,6 +189,12 @@ const AdminDashboardHome = ({ onNavigate }: { onNavigate: (tab: string) => void 
         acuityTrends,
         pendingIncreases,
         complianceDeadlines,
+        upcomingTours: ((toursData as any[]) || []).map((t: any) => ({
+          id: t.id,
+          prospect_name: t.prospects?.name || "Unknown",
+          scheduled_at: t.scheduled_at,
+          assigned_staff_name: t.assigned_staff_name,
+        })),
       });
       setLoading(false);
     };
@@ -488,6 +497,44 @@ const AdminDashboardHome = ({ onNavigate }: { onNavigate: (tab: string) => void 
 
         {/* Right 30% — Sidebar */}
         <div className="lg:col-span-3 space-y-5">
+          {/* Upcoming Tours */}
+          <div className="glass-card rounded-xl overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <h3 className="font-semibold text-foreground text-sm flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-primary" /> Upcoming Tours
+              </h3>
+              <button
+                onClick={() => onNavigate("crm")}
+                className="text-xs text-primary font-medium flex items-center gap-1 hover:underline"
+              >
+                View All <ChevronRight className="w-3 h-3" />
+              </button>
+            </div>
+            {data.upcomingTours.length === 0 ? (
+              <div className="p-5 text-center text-muted-foreground text-sm">
+                <Calendar className="w-8 h-8 mx-auto mb-2 text-primary/40" />
+                No upcoming tours scheduled.
+              </div>
+            ) : (
+              <div className="divide-y divide-border">
+                {data.upcomingTours.map(tour => (
+                  <div key={tour.id} className="p-3 space-y-1">
+                    <p className="font-medium text-foreground text-sm">{tour.prospect_name}</p>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      <Clock className="w-3 h-3" />
+                      {format(new Date(tour.scheduled_at), "EEE, MMM d · h:mm a")}
+                    </p>
+                    {tour.assigned_staff_name && (
+                      <span className="inline-block text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">
+                        {tour.assigned_staff_name}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Compliance Deadlines */}
           <div className="glass-card rounded-xl overflow-hidden">
             <div className="p-4 border-b border-border">
