@@ -1,20 +1,37 @@
 import { useState } from "react";
 import { useApp } from "@/contexts/AppContext";
-import { PayPeriod, PayRun } from "@/types";
+import { PayPeriod, PayRun, PayRunType } from "@/types";
 import { MOCK_PAY_PERIODS } from "@/data/mockData";
 import { buildPayRun, generatePayStubs, formatCurrency } from "@/lib/payroll";
 import {
   Calendar, ChevronRight, Check, AlertTriangle, ArrowLeft,
-  DollarSign, Clock, Users, FileCheck
+  DollarSign, Clock, Users, FileCheck, Gift, Zap
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
-type WizardStep = "select-period" | "review-hours" | "preview-pay" | "confirm";
+type WizardStep = "select-type" | "select-period" | "bonus-amounts" | "review-hours" | "preview-pay" | "confirm";
 
-const STEPS: { key: WizardStep; label: string; icon: React.ElementType }[] = [
+const STEPS_REGULAR: { key: WizardStep; label: string; icon: React.ElementType }[] = [
+  { key: "select-type", label: "Run Type", icon: Zap },
   { key: "select-period", label: "Pay Period", icon: Calendar },
   { key: "review-hours", label: "Review Hours", icon: Clock },
   { key: "preview-pay", label: "Preview Pay", icon: DollarSign },
   { key: "confirm", label: "Approve", icon: FileCheck },
+];
+
+const STEPS_BONUS: { key: WizardStep; label: string; icon: React.ElementType }[] = [
+  { key: "select-type", label: "Run Type", icon: Zap },
+  { key: "select-period", label: "Pay Period", icon: Calendar },
+  { key: "bonus-amounts", label: "Amounts", icon: Gift },
+  { key: "preview-pay", label: "Preview Pay", icon: DollarSign },
+  { key: "confirm", label: "Approve", icon: FileCheck },
+];
+
+const RUN_TYPES: { key: PayRunType; label: string; description: string; icon: React.ElementType }[] = [
+  { key: "regular", label: "Regular Payroll", description: "Standard pay period run from shift data", icon: Calendar },
+  { key: "off_cycle", label: "Off-Cycle", description: "Ad-hoc run outside the normal schedule", icon: Zap },
+  { key: "bonus", label: "Bonus", description: "One-time bonus payments to employees", icon: Gift },
+  { key: "termination", label: "Termination", description: "Final pay for departing employees", icon: ArrowLeft },
 ];
 
 interface Props {
@@ -24,17 +41,37 @@ interface Props {
 
 const PayRunWizard = ({ onComplete, onCancel }: Props) => {
   const { shifts, employees, addPayRun, addPayStubs, updatePayRunStatus } = useApp();
-  const [step, setStep] = useState<WizardStep>("select-period");
+  const [step, setStep] = useState<WizardStep>("select-type");
+  const [runType, setRunType] = useState<PayRunType>("regular");
   const [selectedPeriod, setSelectedPeriod] = useState<PayPeriod | null>(null);
   const [payRun, setPayRun] = useState<PayRun | null>(null);
+  const [bonusAmounts, setBonusAmounts] = useState<Map<string, number>>(new Map());
 
+  const STEPS = runType === "bonus" ? STEPS_BONUS : STEPS_REGULAR;
   const stepIndex = STEPS.findIndex(s => s.key === step);
 
   const handleSelectPeriod = (period: PayPeriod) => {
     setSelectedPeriod(period);
-    const run = buildPayRun(period, employees, shifts);
+    if (runType === "bonus") {
+      // Initialize bonus amounts for all employees
+      const initial = new Map<string, number>();
+      employees.forEach(e => initial.set(e.id, 0));
+      setBonusAmounts(initial);
+      setStep("bonus-amounts");
+    } else {
+      const run = buildPayRun(period, employees, shifts, runType);
+      setPayRun(run);
+      setStep("review-hours");
+    }
+  };
+
+  const handleBonusPreview = () => {
+    if (!selectedPeriod) return;
+    const filteredBonuses = new Map([...bonusAmounts].filter(([, v]) => v > 0));
+    const bonusEmployees = employees.filter(e => filteredBonuses.has(e.id));
+    const run = buildPayRun(selectedPeriod, bonusEmployees, [], "bonus", filteredBonuses);
     setPayRun(run);
-    setStep("review-hours");
+    setStep("preview-pay");
   };
 
   const handleApprove = async () => {
@@ -78,6 +115,39 @@ const PayRunWizard = ({ onComplete, onCancel }: Props) => {
       </div>
 
       {/* Step Content */}
+      {step === "select-type" && (
+        <div className="space-y-4">
+          <div>
+            <h2 className="text-xl font-display font-bold text-foreground">Select Run Type</h2>
+            <p className="text-sm text-muted-foreground mt-1">Choose the type of payroll run.</p>
+          </div>
+          {RUN_TYPES.map(rt => {
+            const Icon = rt.icon;
+            return (
+              <button
+                key={rt.key}
+                onClick={() => { setRunType(rt.key); setStep("select-period"); }}
+                className={`w-full glass-card rounded-xl p-5 text-left transition-all hover:shadow-lg hover:border-primary/30 active:scale-[0.99] group ${runType === rt.key ? "border-primary/40" : ""}`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Icon className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground">{rt.label}</p>
+                      <p className="text-sm text-muted-foreground mt-0.5">{rt.description}</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                </div>
+              </button>
+            );
+          })}
+          <button onClick={onCancel} className="text-sm text-muted-foreground hover:text-foreground">← Cancel</button>
+        </div>
+      )}
+
       {step === "select-period" && (
         <div className="space-y-4">
           <div>
@@ -101,9 +171,56 @@ const PayRunWizard = ({ onComplete, onCancel }: Props) => {
               </div>
             </button>
           ))}
-          <button onClick={onCancel} className="text-sm text-muted-foreground hover:text-foreground">
-            ← Cancel
+          <button onClick={() => setStep("select-type")} className="text-sm text-muted-foreground hover:text-foreground">
+            ← Back
           </button>
+        </div>
+      )}
+
+      {step === "bonus-amounts" && (
+        <div className="space-y-4">
+          <div>
+            <h2 className="text-xl font-display font-bold text-foreground">Set Bonus Amounts</h2>
+            <p className="text-sm text-muted-foreground mt-1">Enter the bonus amount for each employee. Leave at $0 to skip.</p>
+          </div>
+          <div className="glass-card rounded-xl overflow-hidden">
+            <div className="divide-y divide-border">
+              {employees.map(emp => (
+                <div key={emp.id} className="px-4 py-3 flex items-center justify-between gap-4">
+                  <div>
+                    <p className="font-medium text-foreground text-sm">{emp.name}</p>
+                    <p className="text-xs text-muted-foreground">{emp.role} · {emp.workerType === "contractor" ? "Contractor" : "Employee"}</p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm text-muted-foreground">$</span>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="100"
+                      value={bonusAmounts.get(emp.id) || ""}
+                      onChange={e => {
+                        const newMap = new Map(bonusAmounts);
+                        newMap.set(emp.id, parseFloat(e.target.value) || 0);
+                        setBonusAmounts(newMap);
+                      }}
+                      placeholder="0.00"
+                      className="w-32"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <button onClick={() => setStep("select-period")} className="flex-1 rounded-lg border border-border text-foreground font-medium py-3 active:scale-[0.98] transition-transform">Back</button>
+            <button
+              onClick={handleBonusPreview}
+              disabled={[...bonusAmounts.values()].every(v => v <= 0)}
+              className="flex-1 rounded-lg bg-primary text-primary-foreground font-medium py-3 disabled:opacity-50 active:scale-[0.98] transition-transform"
+            >
+              Preview Pay →
+            </button>
+          </div>
         </div>
       )}
 

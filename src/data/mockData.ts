@@ -39,6 +39,7 @@ export const MOCK_RESIDENTS: Resident[] = [
 export const MOCK_EMPLOYEES: Employee[] = [
   {
     id: "c1", name: "Maria Garcia", email: "maria@example.com", phone: "(555) 123-4567",
+    workerType: "employee", workState: "CA",
     payType: "hourly", hourlyRate: 18.50, annualSalary: 0, shiftDifferentials: [{ label: "Night", multiplier: 1.10 }],
     filingStatus: "single", federalAllowances: 1, stateAllowances: 1,
     w4: { additionalWithholding: 0, isExempt: false },
@@ -48,6 +49,7 @@ export const MOCK_EMPLOYEES: Employee[] = [
   },
   {
     id: "c2", name: "Ana Rodriguez", email: "ana@example.com", phone: "(555) 234-5678",
+    workerType: "employee", workState: "CA",
     payType: "hourly", hourlyRate: 17.00, annualSalary: 0, shiftDifferentials: [],
     filingStatus: "married", federalAllowances: 2, stateAllowances: 2,
     w4: { additionalWithholding: 25, isExempt: false },
@@ -57,6 +59,7 @@ export const MOCK_EMPLOYEES: Employee[] = [
   },
   {
     id: "c3", name: "David Chen", email: "david@example.com", phone: "(555) 345-6789",
+    workerType: "employee", workState: "CA",
     payType: "salaried", hourlyRate: 0, annualSalary: 49920, shiftDifferentials: [],
     filingStatus: "single", federalAllowances: 1, stateAllowances: 1,
     w4: { additionalWithholding: 0, isExempt: false },
