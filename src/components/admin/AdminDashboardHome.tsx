@@ -2,10 +2,17 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Users, Pill, DollarSign, AlertTriangle, TrendingUp,
-  Clock, Shield, Activity, Loader2, ChevronRight, BedDouble
+  Clock, Shield, Activity, Loader2, ChevronRight, BedDouble, Plus, Wallet
 } from "lucide-react";
-import { differenceInDays, format, parseISO } from "date-fns";
+import { differenceInDays, format, parseISO, startOfMonth, endOfMonth } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { toast } from "sonner";
 import BusinessIntelligence from "./BusinessIntelligence";
+
+const EXPENSE_CATEGORIES = ["Labor", "Food", "Supplies", "Utilities", "Rent", "Other"] as const;
 
 interface DashboardData {
   residents: { id: string; name: string; room: string; care_level: string; acuity_score: number; lic602a_expiry: string | null }[];
@@ -13,6 +20,8 @@ interface DashboardData {
   maxCapacity: number;
   shiftsOnDuty: number;
   monthlyRevenue: number;
+  monthlyExpenses: number;
+  monthlyLaborCost: number;
   medPassProgress: { done: number; total: number };
   openIncidents: { id: string; resident_name: string; incident_type: string; occurred_at: string; description: string }[];
   acuityTrends: { resident_id: string; resident_name: string; room: string; current_score: number; calculated_score: number; current_level: string; calculated_level: string }[];
@@ -23,10 +32,19 @@ interface DashboardData {
 const AdminDashboardHome = ({ onNavigate }: { onNavigate: (tab: string) => void }) => {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showExpenseModal, setShowExpenseModal] = useState(false);
+  const [expCategory, setExpCategory] = useState<string>("Supplies");
+  const [expAmount, setExpAmount] = useState("");
+  const [expDescription, setExpDescription] = useState("");
+  const [expDate, setExpDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [savingExpense, setSavingExpense] = useState(false);
 
   useEffect(() => {
     const load = async () => {
       setLoading(true);
+
+      const monthStart = format(startOfMonth(new Date()), "yyyy-MM-dd");
+      const monthEnd = format(endOfMonth(new Date()), "yyyy-MM-dd");
 
       // Parallel fetches
       const [
@@ -37,6 +55,8 @@ const AdminDashboardHome = ({ onNavigate }: { onNavigate: (tab: string) => void 
         { data: acuitySummary },
         { data: dailyLogs },
         { data: staffCerts },
+        { data: expenses },
+        { data: payRuns },
       ] = await Promise.all([
         supabase.from("residents").select("id, name, room, care_level, acuity_score, lic602a_expiry").order("name"),
         supabase.from("shifts").select("id, caregiver_id, clock_in, clock_out").is("clock_out", null),
@@ -45,6 +65,8 @@ const AdminDashboardHome = ({ onNavigate }: { onNavigate: (tab: string) => void 
         supabase.from("resident_acuity_summary").select("*"),
         supabase.from("daily_care_logs").select("id, resident_id").gte("log_date", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split("T")[0]),
         supabase.from("staff_certifications").select("id, cert_type, expiry_date, profiles(display_name)").order("expiry_date"),
+        supabase.from("expenses").select("amount, category").gte("expense_date", monthStart).lte("expense_date", monthEnd),
+        supabase.from("pay_runs").select("total_net_pay, status").in("status", ["approved", "paid"]).gte("created_at", monthStart),
       ]);
 
       const resList = residents || [];
@@ -54,6 +76,16 @@ const AdminDashboardHome = ({ onNavigate }: { onNavigate: (tab: string) => void 
       // Monthly revenue
       const monthlyRevenue = contractList.reduce(
         (sum, c) => sum + Number(c.base_rent) + Number(c.current_care_surcharge), 0
+      );
+
+      // Monthly expenses
+      const monthlyExpenses = ((expenses as any[]) || []).reduce(
+        (sum, e) => sum + Number(e.amount), 0
+      );
+
+      // Monthly labor cost from approved pay runs
+      const monthlyLaborCost = ((payRuns as any[]) || []).reduce(
+        (sum, p) => sum + Number(p.total_net_pay), 0
       );
 
       // Med-pass: count today's care logs vs total residents
@@ -117,6 +149,8 @@ const AdminDashboardHome = ({ onNavigate }: { onNavigate: (tab: string) => void 
         maxCapacity: 6,
         shiftsOnDuty: (shifts || []).length,
         monthlyRevenue,
+        monthlyExpenses,
+        monthlyLaborCost,
         medPassProgress: { done: medPassDone, total: resList.length },
         openIncidents: (incidents || []).map((i: any) => ({
           id: i.id,
@@ -200,19 +234,54 @@ const AdminDashboardHome = ({ onNavigate }: { onNavigate: (tab: string) => void 
           <p className="text-xs text-muted-foreground">active shift(s)</p>
         </div>
 
-        {/* Monthly Revenue */}
-        <div className="glass-card rounded-xl p-4 space-y-1">
-          <div className="flex items-center gap-2">
-            <DollarSign className="w-4 h-4 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground font-medium">Monthly Revenue</span>
-          </div>
-          <p className="text-2xl font-display font-bold text-foreground">{fmt(data.monthlyRevenue)}</p>
-          <p className="text-xs text-muted-foreground">{data.pendingIncreases.length} pending increases</p>
-        </div>
+        {/* Net Profit */}
+        {(() => {
+          const totalExpenses = data.monthlyExpenses + data.monthlyLaborCost;
+          const netProfit = data.monthlyRevenue - totalExpenses;
+          const margin = data.monthlyRevenue > 0 ? (netProfit / data.monthlyRevenue) * 100 : 0;
+          return (
+            <div className="glass-card rounded-xl p-4 space-y-1.5">
+              <div className="flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground font-medium">Net Profit</span>
+              </div>
+              <p className="text-lg font-display font-bold text-foreground">{fmt(data.monthlyRevenue)}</p>
+              <p className="text-xs text-destructive font-medium">
+                − {fmt(totalExpenses)} expenses
+              </p>
+              <p className={`text-sm font-bold ${netProfit >= 0 ? "text-primary" : "text-destructive"}`}>
+                = {fmt(netProfit)}
+              </p>
+              <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${netProfit >= 0 ? "bg-primary" : "bg-destructive"}`}
+                  style={{ width: `${Math.min(100, Math.max(5, Math.abs(margin)))}%` }}
+                />
+              </div>
+              <p className="text-[10px] text-muted-foreground">{margin.toFixed(1)}% margin</p>
+            </div>
+          );
+        })()}
       </div>
 
+      {/* Labor Cost Widget */}
+      {data.monthlyLaborCost > 0 && (
+        <div className="glass-card rounded-xl p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-accent/10 flex items-center justify-center">
+              <Wallet className="w-4 h-4 text-accent" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-foreground">Live Labor Cost</p>
+              <p className="text-xs text-muted-foreground">Current month from approved pay runs</p>
+            </div>
+          </div>
+          <p className="text-lg font-display font-bold text-foreground">{fmt(data.monthlyLaborCost)}</p>
+        </div>
+      )}
+
       {/* ── Business Intelligence ── */}
-      <BusinessIntelligence onNavigate={onNavigate} />
+      <BusinessIntelligence onNavigate={onNavigate} onQuickExpense={() => setShowExpenseModal(true)} />
 
       {/* ── Main Content Grid ── */}
       <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
@@ -388,6 +457,70 @@ const AdminDashboardHome = ({ onNavigate }: { onNavigate: (tab: string) => void 
           </div>
         </div>
       </div>
+
+      {/* Quick-Log Expense Modal */}
+      <Dialog open={showExpenseModal} onOpenChange={setShowExpenseModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Quick-Log Expense</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium text-foreground">Category</label>
+              <Select value={expCategory} onValueChange={setExpCategory}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {EXPENSE_CATEGORIES.map(c => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-foreground">Amount ($)</label>
+              <Input type="number" min="0" step="0.01" value={expAmount} onChange={e => setExpAmount(e.target.value)} placeholder="e.g. 125.50" />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-foreground">Description (optional)</label>
+              <Input value={expDescription} onChange={e => setExpDescription(e.target.value)} placeholder="e.g. Costco grocery run" />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-foreground">Date</label>
+              <Input type="date" value={expDate} onChange={e => setExpDate(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowExpenseModal(false)}>Cancel</Button>
+            <Button
+              disabled={!expAmount || parseFloat(expAmount) <= 0 || savingExpense}
+              onClick={async () => {
+                setSavingExpense(true);
+                const { data: { user } } = await supabase.auth.getUser();
+                const { error } = await supabase.from("expenses").insert({
+                  category: expCategory,
+                  amount: parseFloat(expAmount),
+                  description: expDescription.trim() || null,
+                  expense_date: expDate,
+                  created_by: user?.id || "",
+                });
+                setSavingExpense(false);
+                if (error) { toast.error("Failed to log expense"); return; }
+                toast.success("💰 Expense logged!");
+                setShowExpenseModal(false);
+                setExpAmount("");
+                setExpDescription("");
+                setExpCategory("Supplies");
+                setExpDate(format(new Date(), "yyyy-MM-dd"));
+                // Refresh dashboard data
+                window.location.reload();
+              }}
+            >
+              {savingExpense ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Log Expense
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

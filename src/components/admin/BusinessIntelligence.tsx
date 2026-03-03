@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  BarChart3, Clock, AlertTriangle, FileText, Loader2, ChevronRight
+  BarChart3, Clock, AlertTriangle, FileText, Loader2, ChevronRight, Plus
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { differenceInDays, parseISO, format } from "date-fns";
@@ -50,7 +50,7 @@ interface ResidentRow {
   contract_id: string | null;
 }
 
-const BusinessIntelligence = ({ onNavigate }: { onNavigate: (tab: string) => void }) => {
+const BusinessIntelligence = ({ onNavigate, onQuickExpense }: { onNavigate: (tab: string) => void; onQuickExpense?: () => void }) => {
   const [notices, setNotices] = useState<Notice[]>([]);
   const [lic602Alerts, setLic602Alerts] = useState<Lic602Alert[]>([]);
   const [residentRows, setResidentRows] = useState<ResidentRow[]>([]);
@@ -155,9 +155,16 @@ const BusinessIntelligence = ({ onNavigate }: { onNavigate: (tab: string) => voi
   return (
     <div className="space-y-5">
       {/* Section Header */}
-      <div className="flex items-center gap-2">
-        <BarChart3 className="w-5 h-5 text-primary" />
-        <h2 className="text-lg font-display font-bold text-foreground">Business Intelligence</h2>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <BarChart3 className="w-5 h-5 text-primary" />
+          <h2 className="text-lg font-display font-bold text-foreground">Business Intelligence</h2>
+        </div>
+        {onQuickExpense && (
+          <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={onQuickExpense}>
+            <Plus className="w-3 h-3" /> Log Expense
+          </Button>
+        )}
       </div>
 
       {/* LIC 602A Urgent Alerts */}
