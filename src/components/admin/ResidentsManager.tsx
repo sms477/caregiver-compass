@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Pill, Users, Loader2 } from "lucide-react";
+import { ResidentBadges, AcuityTag, HospiceEmergencyCard, ComplianceCountdown } from "./ResidentBadges";
 
 const ResidentsManager = () => {
   const { residents, loading, refresh } = useResidents();
@@ -133,10 +134,18 @@ const ResidentsManager = () => {
         <div className="space-y-4">
           {residents.map(r => (
             <div key={r.id} className="glass-card rounded-xl p-4 space-y-3">
+              {/* Hospice Emergency Card */}
+              <HospiceEmergencyCard resident={r} />
+
               <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold text-foreground">{r.name}</h3>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-foreground">{r.name}</h3>
+                    <ResidentBadges resident={r} />
+                  </div>
                   <p className="text-xs text-muted-foreground">{r.room}</p>
+                  <AcuityTag resident={r} />
+                  <ComplianceCountdown resident={r} />
                 </div>
                 <div className="flex gap-1">
                   <Button variant="ghost" size="icon" onClick={() => openEditResident(r)}>
