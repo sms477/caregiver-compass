@@ -7,9 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import {
   Loader2, DollarSign, TrendingUp, Clock, FileText,
-  Plus, Pencil, Play, CheckCircle, AlertTriangle
+  Plus, Pencil, Play, CheckCircle, AlertTriangle, Eye
 } from "lucide-react";
 import { differenceInDays, parseISO, format } from "date-fns";
+import InvoiceTemplate from "./InvoiceTemplate";
 
 interface Contract {
   id: string;
@@ -26,6 +27,8 @@ interface Contract {
 
 interface Invoice {
   id: string;
+  resident_id: string;
+  contract_id: string;
   resident_name: string;
   base_rent: number;
   care_surcharge: number;
@@ -53,8 +56,11 @@ const BillingDashboard = () => {
   const [savingContract, setSavingContract] = useState(false);
 
   // Residents without contracts (for adding)
-  const [residentsWithoutContract, setResidentsWithoutContract] = useState<{ id: string; name: string; room: string }[]>([]);
+  const [residentsWithoutContract, setResidentsWithoutContract] = useState<{ id: string; name: string; room: string; care_level: string }[]>([]);
   const [selectedResidentId, setSelectedResidentId] = useState("");
+
+  // Invoice view state
+  const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -87,6 +93,8 @@ const BillingDashboard = () => {
 
     setInvoices((invoiceRows as any[] || []).map((i: any) => ({
       id: i.id,
+      resident_id: i.resident_id,
+      contract_id: i.contract_id,
       resident_name: i.resident_name,
       base_rent: Number(i.base_rent),
       care_surcharge: Number(i.care_surcharge),
@@ -99,7 +107,7 @@ const BillingDashboard = () => {
     // Fetch residents without contracts
     const { data: allResidents } = await supabase
       .from("residents")
-      .select("id, name, room")
+      .select("id, name, room, care_level")
       .order("name");
 
     const contractedIds = new Set(mapped.map(c => c.resident_id));
@@ -311,7 +319,31 @@ const BillingDashboard = () => {
                         <td className="p-3 text-right font-bold text-foreground">
                           {fmt(c.base_rent + c.current_care_surcharge)}
                         </td>
-                        <td className="p-3 text-right">
+                        <td className="p-3 text-right flex gap-1 justify-end">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            title="View Invoice"
+                            onClick={() => {
+                              // Create an invoice-like object from the contract for preview
+                              const now = new Date();
+                              setViewingInvoice({
+                                id: c.id,
+                                resident_id: c.resident_id,
+                                contract_id: c.id,
+                                resident_name: c.resident_name,
+                                base_rent: c.base_rent,
+                                care_surcharge: c.current_care_surcharge,
+                                total_amount: c.base_rent + c.current_care_surcharge,
+                                billing_period: now.toLocaleDateString("en-US", { month: "long", year: "numeric" }),
+                                status: "preview",
+                                created_at: now.toISOString(),
+                              });
+                            }}
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </Button>
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditContract(c)}>
                             <Pencil className="w-3.5 h-3.5" />
                           </Button>
@@ -371,7 +403,10 @@ const BillingDashboard = () => {
                             {inv.status === "paid" ? "Paid" : "Unpaid"}
                           </span>
                         </td>
-                        <td className="p-3 text-right">
+                        <td className="p-3 text-right flex gap-1 justify-end">
+                          <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => setViewingInvoice(inv)}>
+                            <Eye className="w-3 h-3" /> View
+                          </Button>
                           {inv.status !== "paid" && (
                             <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => markPaid(inv.id)}>
                               <CheckCircle className="w-3 h-3" /> Mark Paid
@@ -498,6 +533,25 @@ const BillingDashboard = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Invoice Template Modal */}
+      <InvoiceTemplate
+        open={!!viewingInvoice}
+        onOpenChange={(open) => { if (!open) setViewingInvoice(null); }}
+        data={viewingInvoice ? {
+          invoiceId: viewingInvoice.id,
+          invoiceDate: viewingInvoice.created_at,
+          facilityName: "Your Facility Name",
+          residentName: viewingInvoice.resident_name,
+          room: contracts.find(c => c.resident_id === viewingInvoice.resident_id)?.room || "",
+          baseRent: viewingInvoice.base_rent,
+          careLevel: contracts.find(c => c.resident_id === viewingInvoice.resident_id) 
+            ? `Level ${viewingInvoice.care_surcharge > 0 ? "of Care" : "Basic"}`
+            : "Basic",
+          careSurcharge: viewingInvoice.care_surcharge,
+          billingPeriod: viewingInvoice.billing_period,
+        } : null}
+      />
     </div>
   );
 };

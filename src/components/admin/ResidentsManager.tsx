@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useResidents, DBResident, DBMedication } from "@/hooks/useResidents";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -7,8 +7,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Pill, Users, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Pill, Users, Loader2, Receipt, ChevronDown, ChevronUp } from "lucide-react";
 import { ResidentBadges, AcuityTag, HospiceEmergencyCard, ComplianceCountdown } from "./ResidentBadges";
+import { differenceInDays } from "date-fns";
+
+interface ResidentInvoice {
+  id: string;
+  billing_period: string;
+  total_amount: number;
+  status: string;
+  created_at: string;
+}
 
 const ResidentsManager = () => {
   const { residents, loading, refresh } = useResidents();
@@ -30,6 +39,25 @@ const ResidentsManager = () => {
   const [medSchedule, setMedSchedule] = useState("Morning");
 
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [billingHistory, setBillingHistory] = useState<Record<string, ResidentInvoice[]>>({});
+  const [expandedBilling, setExpandedBilling] = useState<string | null>(null);
+  const [loadingBilling, setLoadingBilling] = useState<string | null>(null);
+
+  const loadBillingHistory = async (residentId: string) => {
+    if (expandedBilling === residentId) {
+      setExpandedBilling(null);
+      return;
+    }
+    setLoadingBilling(residentId);
+    const { data } = await supabase
+      .from("invoices")
+      .select("id, billing_period, total_amount, status, created_at")
+      .eq("resident_id", residentId)
+      .order("created_at", { ascending: false });
+    setBillingHistory(prev => ({ ...prev, [residentId]: (data as ResidentInvoice[]) || [] }));
+    setExpandedBilling(residentId);
+    setLoadingBilling(null);
+  };
 
   // Resident CRUD
   const openNewResident = () => {
@@ -211,6 +239,68 @@ const ResidentsManager = () => {
                     </div>
                   </div>
                 ))}
+              </div>
+
+              {/* Billing History */}
+              <div className="pl-2 border-l-2 border-accent/20 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                    <Receipt className="w-3 h-3" /> Billing History
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs gap-1"
+                    onClick={() => loadBillingHistory(r.id)}
+                    disabled={loadingBilling === r.id}
+                  >
+                    {loadingBilling === r.id ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : expandedBilling === r.id ? (
+                      <ChevronUp className="w-3 h-3" />
+                    ) : (
+                      <ChevronDown className="w-3 h-3" />
+                    )}
+                    {expandedBilling === r.id ? "Hide" : "Show"}
+                  </Button>
+                </div>
+                {expandedBilling === r.id && (
+                  <div className="space-y-1">
+                    {(billingHistory[r.id] || []).length === 0 ? (
+                      <p className="text-xs text-muted-foreground italic">No invoices found.</p>
+                    ) : (
+                      (billingHistory[r.id] || []).map(inv => {
+                        const isOverdue = inv.status === "unpaid" && differenceInDays(new Date(), new Date(inv.created_at)) > 10;
+                        return (
+                          <div
+                            key={inv.id}
+                            className={`flex items-center justify-between rounded-lg px-3 py-2 ${
+                              isOverdue
+                                ? "bg-destructive/10 border border-destructive/30"
+                                : "bg-muted/30"
+                            }`}
+                          >
+                            <div>
+                              <p className="text-sm font-medium text-foreground">{inv.billing_period}</p>
+                              <p className="text-xs text-muted-foreground">
+                                ${Number(inv.total_amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                              </p>
+                            </div>
+                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                              inv.status === "paid"
+                                ? "bg-primary/10 text-primary"
+                                : isOverdue
+                                  ? "bg-destructive/20 text-destructive"
+                                  : "bg-accent/10 text-accent"
+                            }`}>
+                              {inv.status === "paid" ? "Paid" : isOverdue ? "Overdue" : "Unpaid"}
+                            </span>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           ))}
