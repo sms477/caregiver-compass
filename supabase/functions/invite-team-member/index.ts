@@ -133,6 +133,7 @@ Deno.serve(async (req) => {
         .update({
           hourly_rate: hourly_rate || 0,
           job_title: job_title || "Caregiver",
+          org_id: org_id || null,
         })
         .eq("user_id", userId);
 
