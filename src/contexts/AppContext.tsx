@@ -318,6 +318,21 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const updated = { ...activeShift, adlReports: [...activeShift.adlReports.filter(r => r.residentId !== report.residentId), report] };
     setActiveShift(updated);
     await syncShiftToDB(updated);
+
+    // Also write to daily_care_logs so acuity scoring picks it up
+    const boolToLevel = (v: boolean) => v ? "Assist" : "Independent";
+    await supabase.from("daily_care_logs").upsert({
+      resident_id: report.residentId,
+      staff_id: activeShift.caregiverId,
+      staff_name: activeShift.caregiverName,
+      log_date: new Date().toISOString().split("T")[0],
+      bathing: boolToLevel(report.bathing),
+      dressing: boolToLevel(report.dressing),
+      eating: boolToLevel(report.eating),
+      toileting: boolToLevel(report.toileting),
+      transfers: boolToLevel(report.mobility),
+      notes: report.notes || null,
+    }, { onConflict: "resident_id,log_date", ignoreDuplicates: false });
   }, [activeShift]);
 
   const addEMARRecord = useCallback(async (record: Omit<EMARRecord, "id">) => {
