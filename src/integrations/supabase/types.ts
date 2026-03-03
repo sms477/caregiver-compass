@@ -1033,6 +1033,54 @@ export type Database = {
           },
         ]
       }
+      staff_certifications: {
+        Row: {
+          cert_type: string
+          created_at: string
+          expiry_date: string
+          id: string
+          location_id: string | null
+          profile_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          cert_type: string
+          created_at?: string
+          expiry_date: string
+          id?: string
+          location_id?: string | null
+          profile_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          cert_type?: string
+          created_at?: string
+          expiry_date?: string
+          id?: string
+          location_id?: string | null
+          profile_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_certifications_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_certifications_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tax_filings: {
         Row: {
           agency: string

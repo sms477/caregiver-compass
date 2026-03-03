@@ -16,7 +16,7 @@ interface DashboardData {
   openIncidents: { id: string; resident_name: string; incident_type: string; occurred_at: string; description: string }[];
   acuityTrends: { resident_id: string; resident_name: string; room: string; current_score: number; calculated_score: number; current_level: string; calculated_level: string }[];
   pendingIncreases: { resident_name: string; current_care_surcharge: number; pending_care_surcharge: number; increase_effective_date: string; daysLeft: number }[];
-  complianceDeadlines: { type: string; name: string; expiry: string; daysLeft: number }[];
+  complianceDeadlines: { type: string; name: string; expiry: string; daysLeft: number; category: "resident" | "staff" }[];
 }
 
 const AdminDashboardHome = ({ onNavigate }: { onNavigate: (tab: string) => void }) => {
@@ -35,6 +35,7 @@ const AdminDashboardHome = ({ onNavigate }: { onNavigate: (tab: string) => void 
         { data: incidents },
         { data: acuitySummary },
         { data: dailyLogs },
+        { data: staffCerts },
       ] = await Promise.all([
         supabase.from("residents").select("id, name, room, care_level, acuity_score, lic602a_expiry").order("name"),
         supabase.from("shifts").select("id, caregiver_id, clock_in, clock_out").is("clock_out", null),
@@ -42,6 +43,7 @@ const AdminDashboardHome = ({ onNavigate }: { onNavigate: (tab: string) => void 
         supabase.from("incidents").select("id, resident_name, incident_type, occurred_at, description, status").eq("status", "open").order("occurred_at", { ascending: false }).limit(10),
         supabase.from("resident_acuity_summary").select("*"),
         supabase.from("daily_care_logs").select("id, resident_id").gte("log_date", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split("T")[0]),
+        supabase.from("staff_certifications").select("id, cert_type, expiry_date, profiles(display_name)").order("expiry_date"),
       ]);
 
       const resList = residents || [];
@@ -87,7 +89,22 @@ const AdminDashboardHome = ({ onNavigate }: { onNavigate: (tab: string) => void 
         if (r.lic602a_expiry) {
           const dl = differenceInDays(parseISO(r.lic602a_expiry), today);
           if (dl <= 90) {
-            complianceDeadlines.push({ type: "LIC 602A", name: r.name, expiry: r.lic602a_expiry, daysLeft: dl });
+            complianceDeadlines.push({ type: "LIC 602A", name: r.name, expiry: r.lic602a_expiry, daysLeft: dl, category: "resident" });
+          }
+        }
+      });
+      // Staff certifications
+      ((staffCerts as any[]) || []).forEach((sc: any) => {
+        if (sc.expiry_date) {
+          const dl = differenceInDays(parseISO(sc.expiry_date), today);
+          if (dl <= 90) {
+            complianceDeadlines.push({
+              type: sc.cert_type,
+              name: sc.profiles?.display_name || "Unknown",
+              expiry: sc.expiry_date,
+              daysLeft: dl,
+              category: "staff",
+            });
           }
         }
       });
@@ -309,7 +326,12 @@ const AdminDashboardHome = ({ onNavigate }: { onNavigate: (tab: string) => void 
                         <span className="text-xs text-muted-foreground">{d.daysLeft}d</span>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground">{d.type} · Expires {d.expiry}</p>
+                    <p className="text-xs text-muted-foreground">
+                      <span className={`inline-block px-1.5 py-0 rounded text-[10px] font-medium mr-1.5 ${d.category === "staff" ? "bg-accent/20 text-accent-foreground" : "bg-primary/10 text-primary"}`}>
+                        {d.category === "staff" ? "Staff" : "Resident"}
+                      </span>
+                      {d.type} · Expires {d.expiry}
+                    </p>
                   </div>
                 ))}
               </div>
