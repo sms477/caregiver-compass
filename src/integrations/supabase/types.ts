@@ -108,6 +108,13 @@ export type Database = {
             foreignKeyName: "daily_care_logs_resident_id_fkey"
             columns: ["resident_id"]
             isOneToOne: false
+            referencedRelation: "resident_acuity_summary"
+            referencedColumns: ["resident_id"]
+          },
+          {
+            foreignKeyName: "daily_care_logs_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: false
             referencedRelation: "residents"
             referencedColumns: ["id"]
           },
@@ -215,6 +222,13 @@ export type Database = {
             foreignKeyName: "incidents_resident_id_fkey"
             columns: ["resident_id"]
             isOneToOne: false
+            referencedRelation: "resident_acuity_summary"
+            referencedColumns: ["resident_id"]
+          },
+          {
+            foreignKeyName: "incidents_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: false
             referencedRelation: "residents"
             referencedColumns: ["id"]
           },
@@ -299,6 +313,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "locations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medications_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: false
+            referencedRelation: "resident_acuity_summary"
+            referencedColumns: ["resident_id"]
           },
           {
             foreignKeyName: "medications_resident_id_fkey"
@@ -990,7 +1011,20 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      resident_acuity_summary: {
+        Row: {
+          adl_breakdown: Json | null
+          calculated_level: string | null
+          calculated_score: number | null
+          current_level: string | null
+          current_score: number | null
+          log_count: number | null
+          resident_id: string | null
+          resident_name: string | null
+          room: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       admin_can_access_location: {
