@@ -11,7 +11,7 @@ import {
   FileText, Users, TrendingUp, Shield, Play, Receipt,
   LayoutDashboard, UserCircle, ChevronRight, Building2, FileCheck,
   CalendarIcon, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon,
-  Home, History, Activity
+  Home, History, Activity, Wallet
 } from "lucide-react";
 import { formatCurrency } from "@/lib/payroll";
 import { buildPayRun } from "@/lib/payroll";
@@ -28,8 +28,9 @@ import AuditTrailView from "@/components/admin/AuditTrailView";
 import OverdueShiftAlerts from "@/components/admin/OverdueShiftAlerts";
 import ShiftEditor from "@/components/admin/ShiftEditor";
 import AcuityReview from "@/components/admin/AcuityReview";
+import BillingDashboard from "@/components/admin/BillingDashboard";
 
-type AdminTab = "dashboard" | "run-payroll" | "employees" | "residents" | "acuity-review" | "incidents" | "pay-stubs" | "payments" | "tax-forms" | "reports" | "shifts" | "audit-trail";
+type AdminTab = "dashboard" | "run-payroll" | "employees" | "residents" | "acuity-review" | "billing" | "incidents" | "pay-stubs" | "payments" | "tax-forms" | "reports" | "shifts" | "audit-trail";
 
 const NAV_ITEMS: { key: AdminTab; label: string; icon: React.ElementType }[] = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -37,6 +38,7 @@ const NAV_ITEMS: { key: AdminTab; label: string; icon: React.ElementType }[] = [
   { key: "employees", label: "Team", icon: UserCircle },
   { key: "residents", label: "Residents", icon: Home },
   { key: "acuity-review", label: "Acuity Review", icon: Activity },
+  { key: "billing", label: "Billing", icon: Wallet },
   { key: "incidents", label: "Incidents", icon: AlertTriangle },
   { key: "pay-stubs", label: "Pay Stubs", icon: Receipt },
   { key: "payments", label: "Payments", icon: Building2 },
@@ -198,6 +200,7 @@ const AdminDashboard = () => {
           {tab === "employees" && <EmployeeProfiles />}
           {tab === "residents" && <ResidentsManager />}
           {tab === "acuity-review" && <AcuityReview />}
+          {tab === "billing" && <BillingDashboard />}
           {tab === "incidents" && <IncidentsView />}
           {tab === "pay-stubs" && <PayStubsView />}
           {tab === "payments" && <PaymentsView />}

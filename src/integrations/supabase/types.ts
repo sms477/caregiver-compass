@@ -47,6 +47,70 @@ export type Database = {
         }
         Relationships: []
       }
+      contracts: {
+        Row: {
+          base_rent: number
+          billing_day: number
+          created_at: string
+          current_care_surcharge: number
+          id: string
+          increase_effective_date: string | null
+          location_id: string | null
+          pending_care_surcharge: number
+          resident_id: string
+          security_deposit: number
+          updated_at: string
+        }
+        Insert: {
+          base_rent?: number
+          billing_day?: number
+          created_at?: string
+          current_care_surcharge?: number
+          id?: string
+          increase_effective_date?: string | null
+          location_id?: string | null
+          pending_care_surcharge?: number
+          resident_id: string
+          security_deposit?: number
+          updated_at?: string
+        }
+        Update: {
+          base_rent?: number
+          billing_day?: number
+          created_at?: string
+          current_care_surcharge?: number
+          id?: string
+          increase_effective_date?: string | null
+          location_id?: string | null
+          pending_care_surcharge?: number
+          resident_id?: string
+          security_deposit?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contracts_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: true
+            referencedRelation: "resident_acuity_summary"
+            referencedColumns: ["resident_id"]
+          },
+          {
+            foreignKeyName: "contracts_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: true
+            referencedRelation: "residents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daily_care_logs: {
         Row: {
           bathing: string
@@ -227,6 +291,83 @@ export type Database = {
           },
           {
             foreignKeyName: "incidents_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: false
+            referencedRelation: "residents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          base_rent: number
+          billing_period: string
+          care_surcharge: number
+          contract_id: string
+          created_at: string
+          id: string
+          location_id: string | null
+          paid_at: string | null
+          resident_id: string
+          resident_name: string
+          status: string
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          base_rent?: number
+          billing_period: string
+          care_surcharge?: number
+          contract_id: string
+          created_at?: string
+          id?: string
+          location_id?: string | null
+          paid_at?: string | null
+          resident_id: string
+          resident_name: string
+          status?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          base_rent?: number
+          billing_period?: string
+          care_surcharge?: number
+          contract_id?: string
+          created_at?: string
+          id?: string
+          location_id?: string | null
+          paid_at?: string | null
+          resident_id?: string
+          resident_name?: string
+          status?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: false
+            referencedRelation: "resident_acuity_summary"
+            referencedColumns: ["resident_id"]
+          },
+          {
+            foreignKeyName: "invoices_resident_id_fkey"
             columns: ["resident_id"]
             isOneToOne: false
             referencedRelation: "residents"
