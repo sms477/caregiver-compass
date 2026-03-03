@@ -25,6 +25,8 @@ import TaxFormsView from "@/components/admin/TaxFormsView";
 import ResidentsManager from "@/components/admin/ResidentsManager";
 import IncidentsView from "@/components/admin/IncidentsView";
 import AuditTrailView from "@/components/admin/AuditTrailView";
+import OverdueShiftAlerts from "@/components/admin/OverdueShiftAlerts";
+import ShiftEditor from "@/components/admin/ShiftEditor";
 
 type AdminTab = "dashboard" | "run-payroll" | "employees" | "residents" | "incidents" | "pay-stubs" | "payments" | "tax-forms" | "reports" | "shifts" | "audit-trail";
 
@@ -43,7 +45,8 @@ const NAV_ITEMS: { key: AdminTab; label: string; icon: React.ElementType }[] = [
 ];
 
 const AdminDashboard = () => {
-  const { setRole, shifts, employees, payRuns } = useApp();
+  const { setRole, shifts, employees, payRuns, activeShift } = useApp();
+  const [refreshKey, setRefreshKey] = useState(0);
   const [tab, setTab] = useState<AdminTab>("dashboard");
 
   const completedShifts = shifts.filter(s => s.clockOut);
@@ -200,7 +203,7 @@ const AdminDashboard = () => {
           {tab === "audit-trail" && <AuditTrailView />}
 
           {tab === "shifts" && (
-            <ShiftLogView shifts={completedShifts} />
+            <ShiftLogView shifts={completedShifts} onRefresh={() => setRefreshKey(k => k + 1)} />
           )}
         </div>
       </main>
@@ -252,6 +255,9 @@ function DashboardView({ previewRun, currentPeriod, completedShifts, complianceA
         <StatCard icon={Users} label="Employees" value={previewRun.lineItems.length.toString()} />
         <StatCard icon={Clock} label="Total Shifts" value={completedShifts.length.toString()} />
       </div>
+
+      {/* Overdue Shift Alerts */}
+      <OverdueShiftAlerts />
 
       {/* Compliance Alerts */}
       {complianceAlerts.length > 0 && (
@@ -371,7 +377,7 @@ function StatCard({ icon: Icon, label, value, accent }: {
   );
 }
 
-function ShiftLogView({ shifts }: { shifts: Shift[] }) {
+function ShiftLogView({ shifts, onRefresh }: { shifts: Shift[]; onRefresh?: () => void }) {
   const [groupBy, setGroupBy] = useState<"day" | "employee">("day");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
 
@@ -505,7 +511,8 @@ function ShiftLogView({ shifts }: { shifts: Shift[] }) {
                           {new Date(s.clockIn).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} → {s.clockOut ? new Date(s.clockOut).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"}
                         </p>
                       </div>
-                      <div className="flex gap-1.5 flex-wrap">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <ShiftEditor shift={s} onSaved={() => onRefresh?.()} />
                         {s.is24Hour && <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">24hr</span>}
                         {s.mealBreakTaken === false && <span className="text-xs bg-destructive/10 text-destructive px-2 py-0.5 rounded-full font-medium">No break</span>}
                         {s.mealBreakTaken === true && <span className="text-xs bg-success/10 text-success px-2 py-0.5 rounded-full font-medium">Break ✓</span>}
