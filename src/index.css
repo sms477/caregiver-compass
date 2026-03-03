@@ -112,3 +112,34 @@
     @apply bg-card/80 backdrop-blur-sm border border-border/50 shadow-lg;
   }
 }
+
+/* Print styles — only show the invoice */
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  #invoice-print-area,
+  #invoice-print-area * {
+    visibility: visible !important;
+  }
+  #invoice-print-area {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    padding: 2rem !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: white !important;
+    color: black !important;
+  }
+  #invoice-print-area h1,
+  #invoice-print-area p,
+  #invoice-print-area td,
+  #invoice-print-area th {
+    color: black !important;
+  }
+  .print\\:hidden {
+    display: none !important;
+  }
+}
