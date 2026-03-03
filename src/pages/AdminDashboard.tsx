@@ -30,11 +30,14 @@ import ShiftEditor from "@/components/admin/ShiftEditor";
 import AcuityReview from "@/components/admin/AcuityReview";
 import BillingDashboard from "@/components/admin/BillingDashboard";
 import AdminDashboardHome from "@/components/admin/AdminDashboardHome";
+import CRMDashboard from "@/components/admin/crm/CRMDashboard";
+import { Heart } from "lucide-react";
 
-type AdminTab = "dashboard" | "run-payroll" | "employees" | "residents" | "acuity-review" | "billing" | "incidents" | "pay-stubs" | "payments" | "tax-forms" | "reports" | "shifts" | "audit-trail";
+type AdminTab = "dashboard" | "crm" | "run-payroll" | "employees" | "residents" | "acuity-review" | "billing" | "incidents" | "pay-stubs" | "payments" | "tax-forms" | "reports" | "shifts" | "audit-trail";
 
 const NAV_ITEMS: { key: AdminTab; label: string; icon: React.ElementType }[] = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { key: "crm", label: "CRM", icon: Heart },
   { key: "run-payroll", label: "Run Payroll", icon: Play },
   { key: "employees", label: "Team", icon: UserCircle },
   { key: "residents", label: "Residents", icon: Home },
@@ -190,6 +193,7 @@ const AdminDashboard = () => {
             />
           )}
 
+          {tab === "crm" && <CRMDashboard />}
           {tab === "employees" && <EmployeeProfiles />}
           {tab === "residents" && <ResidentsManager />}
           {tab === "acuity-review" && <AcuityReview />}
