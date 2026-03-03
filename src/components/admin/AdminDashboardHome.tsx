@@ -5,6 +5,7 @@ import {
   Clock, Shield, Activity, Loader2, ChevronRight, BedDouble
 } from "lucide-react";
 import { differenceInDays, format, parseISO } from "date-fns";
+import BusinessIntelligence from "./BusinessIntelligence";
 
 interface DashboardData {
   residents: { id: string; name: string; room: string; care_level: string; acuity_score: number; lic602a_expiry: string | null }[];
@@ -209,6 +210,9 @@ const AdminDashboardHome = ({ onNavigate }: { onNavigate: (tab: string) => void 
           <p className="text-xs text-muted-foreground">{data.pendingIncreases.length} pending increases</p>
         </div>
       </div>
+
+      {/* ── Business Intelligence ── */}
+      <BusinessIntelligence onNavigate={onNavigate} />
 
       {/* ── Main Content Grid ── */}
       <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
