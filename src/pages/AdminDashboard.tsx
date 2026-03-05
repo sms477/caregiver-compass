@@ -32,6 +32,7 @@ import BillingDashboard from "@/components/admin/BillingDashboard";
 import AdminDashboardHome from "@/components/admin/AdminDashboardHome";
 import CRMDashboard from "@/components/admin/crm/CRMDashboard";
 import SubscriptionBilling from "@/components/admin/SubscriptionBilling";
+import AdminLocationsManager from "@/components/admin/AdminLocationsManager";
 import { type Prospect } from "@/hooks/useCRM";
 import { Heart } from "lucide-react";
 
