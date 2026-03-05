@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { CheckCircle2, Sparkles, ArrowRight, Mail, Lock, Loader2, User } from "lucide-react";
+import { CheckCircle2, Sparkles, ArrowRight, Mail, Lock, Loader2, User, Building2, MapPin } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { PLAN } from "@/components/admin/SubscriptionBilling";
 
@@ -9,18 +9,28 @@ const LandingPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [orgName, setOrgName] = useState("");
+  const [facilityName, setFacilityName] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!orgName.trim()) {
+      toast({ title: "Required", description: "Please enter your organization name.", variant: "destructive" });
+      return;
+    }
     setLoading(true);
     try {
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: { display_name: displayName || email },
+          data: {
+            display_name: displayName || email,
+            org_name: orgName.trim(),
+            facility_name: facilityName.trim() || undefined,
+          },
           emailRedirectTo: window.location.origin,
         },
       });
