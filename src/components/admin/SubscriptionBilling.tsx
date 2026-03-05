@@ -1,7 +1,7 @@
 import { useSubscription } from "@/hooks/useSubscription";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CreditCard, Sparkles, ArrowRight, CheckCircle2, Loader2, Settings } from "lucide-react";
+import { CreditCard, Sparkles, ArrowRight, CheckCircle2, Loader2, Settings, Clock } from "lucide-react";
 import { format } from "date-fns";
 
 export const PLAN = {
@@ -55,7 +55,7 @@ const SubscriptionBilling = () => {
           {isActive ? (
             <Badge variant="default" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
               {onTrial ? (
-                <><Sparkles className="w-3 h-3 mr-1" /> Free Trial</>
+                <><Clock className="w-3 h-3 mr-1" /> Free Trial</>
               ) : (
                 <><CheckCircle2 className="w-3 h-3 mr-1" /> Active</>
               )}
@@ -71,7 +71,7 @@ const SubscriptionBilling = () => {
               🎉 Your free trial ends {format(new Date(trialEnd), "MMM d, yyyy")}
             </p>
             <p className="text-xs text-amber-600 mt-1">
-              Add a payment method before your trial ends to keep access.
+              Subscribe before your trial ends to keep access.
             </p>
           </div>
         )}
@@ -83,13 +83,13 @@ const SubscriptionBilling = () => {
         )}
 
         <div className="flex gap-2 flex-wrap">
-          {isActive ? (
+          {isActive && !onTrial ? (
             <Button variant="outline" size="sm" onClick={openPortal}>
               <Settings className="w-4 h-4 mr-1" /> Manage Subscription
             </Button>
           ) : (
             <Button onClick={startCheckout} size="sm">
-              <Sparkles className="w-4 h-4 mr-1" /> Start 7-Day Free Trial
+              <CreditCard className="w-4 h-4 mr-1" /> Subscribe Now
             </Button>
           )}
           <Button variant="ghost" size="sm" onClick={checkSubscription}>
@@ -112,7 +112,7 @@ const SubscriptionBilling = () => {
           </ul>
           <div className="pt-2">
             <Button onClick={startCheckout} className="w-full">
-              Start Free Trial — No Card Required <ArrowRight className="w-4 h-4 ml-1" />
+              Subscribe Now <ArrowRight className="w-4 h-4 ml-1" />
             </Button>
           </div>
         </div>

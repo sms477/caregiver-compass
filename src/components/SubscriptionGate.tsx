@@ -1,6 +1,7 @@
 import { useSubscription } from "@/hooks/useSubscription";
-import { Loader2, Sparkles, CheckCircle2, ArrowRight, LogOut } from "lucide-react";
+import { Loader2, CheckCircle2, ArrowRight, LogOut, AlertTriangle, CreditCard, Settings } from "lucide-react";
 import { PLAN } from "@/components/admin/SubscriptionBilling";
+import { format } from "date-fns";
 
 interface SubscriptionGateProps {
   children: React.ReactNode;
@@ -8,7 +9,7 @@ interface SubscriptionGateProps {
 }
 
 const SubscriptionGate = ({ children, signOut }: SubscriptionGateProps) => {
-  const { subscribed, loading, startCheckout, checkSubscription } = useSubscription();
+  const { subscribed, loading, trialEnd, startCheckout, openPortal, checkSubscription } = useSubscription();
 
   if (loading) {
     return (
@@ -22,17 +23,17 @@ const SubscriptionGate = ({ children, signOut }: SubscriptionGateProps) => {
     return <>{children}</>;
   }
 
-  // Paywall
+  // Trial expired paywall
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-md space-y-8 animate-slide-up">
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary text-primary-foreground mb-4">
-            <span className="text-2xl font-display font-black tracking-tight">E</span>
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-destructive/10 text-destructive mb-4">
+            <AlertTriangle className="w-8 h-8" />
           </div>
-          <h1 className="text-3xl font-display font-bold text-foreground tracking-tight">Start Your Free Trial</h1>
+          <h1 className="text-3xl font-display font-bold text-foreground tracking-tight">Trial Expired</h1>
           <p className="text-muted-foreground text-sm">
-            Activate your 7-day free trial to access EasyRCFE. No credit card required.
+            Your 7-day free trial ended{trialEnd ? ` on ${format(new Date(trialEnd), "MMM d, yyyy")}` : ""}. Subscribe to continue using EasyRCFE.
           </p>
         </div>
 
@@ -58,8 +59,8 @@ const SubscriptionGate = ({ children, signOut }: SubscriptionGateProps) => {
             onClick={startCheckout}
             className="w-full rounded-xl bg-primary text-primary-foreground font-semibold py-3 text-sm shadow-md hover:shadow-lg active:scale-[0.97] transition-all flex items-center justify-center gap-2"
           >
-            <Sparkles className="w-4 h-4" />
-            Start 7-Day Free Trial <ArrowRight className="w-4 h-4" />
+            <CreditCard className="w-4 h-4" />
+            Subscribe Now <ArrowRight className="w-4 h-4" />
           </button>
 
           <button
