@@ -7,6 +7,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const TRIAL_DAYS = 7;
+
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[CHECK-SUBSCRIPTION] ${step}${detailsStr}`);
@@ -39,59 +41,73 @@ serve(async (req) => {
     if (!user?.email) throw new Error("User not authenticated or email not available");
     logStep("User authenticated", { email: user.email });
 
+    // Check account age for built-in trial
+    const createdAt = new Date(user.created_at);
+    const now = new Date();
+    const daysSinceCreation = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24);
+    const trialActive = daysSinceCreation <= TRIAL_DAYS;
+    const trialEndDate = new Date(createdAt.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000).toISOString();
+
+    logStep("Trial check", { daysSinceCreation: daysSinceCreation.toFixed(1), trialActive, trialEndDate });
+
+    // If still in trial period, grant access without checking Stripe
+    if (trialActive) {
+      logStep("User is within free trial period");
+      return new Response(JSON.stringify({
+        subscribed: true,
+        on_trial: true,
+        trial_end: trialEndDate,
+        product_id: null,
+        subscription_end: null,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    // Trial expired — check Stripe for active subscription
+    logStep("Trial expired, checking Stripe");
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
 
     if (customers.data.length === 0) {
-      logStep("No customer found");
-      return new Response(JSON.stringify({ subscribed: false, on_trial: false }), {
+      logStep("No Stripe customer found, trial expired");
+      return new Response(JSON.stringify({
+        subscribed: false,
+        on_trial: false,
+        trial_end: trialEndDate,
+        product_id: null,
+        subscription_end: null,
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
     }
 
     const customerId = customers.data[0].id;
-    logStep("Found customer", { customerId });
-
-    // Check active subscriptions
     const subscriptions = await stripe.subscriptions.list({
       customer: customerId,
       status: "active",
       limit: 1,
     });
 
-    // Also check trialing subscriptions
-    const trialingSubs = await stripe.subscriptions.list({
-      customer: customerId,
-      status: "trialing",
-      limit: 1,
-    });
-
-    const allSubs = [...subscriptions.data, ...trialingSubs.data];
-    const hasSub = allSubs.length > 0;
-
+    const hasSub = subscriptions.data.length > 0;
     let subscriptionEnd = null;
-    let onTrial = false;
-    let trialEnd = null;
     let productId = null;
 
     if (hasSub) {
-      const subscription = allSubs[0];
+      const subscription = subscriptions.data[0];
       subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
-      onTrial = subscription.status === "trialing";
-      if (subscription.trial_end) {
-        trialEnd = new Date(subscription.trial_end * 1000).toISOString();
-      }
       productId = subscription.items.data[0].price.product;
-      logStep("Subscription found", { status: subscription.status, onTrial, subscriptionEnd });
+      logStep("Active Stripe subscription found", { subscriptionEnd });
     } else {
-      logStep("No active or trialing subscription");
+      logStep("No active Stripe subscription, trial expired");
     }
 
     return new Response(JSON.stringify({
       subscribed: hasSub,
-      on_trial: onTrial,
-      trial_end: trialEnd,
+      on_trial: false,
+      trial_end: trialEndDate,
       product_id: productId,
       subscription_end: subscriptionEnd,
     }), {
