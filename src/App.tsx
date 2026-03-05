@@ -9,8 +9,9 @@ import Index from "./pages/Index";
 import CaregiverView from "./pages/CaregiverView";
 import AdminDashboard from "./pages/AdminDashboard";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
-import AuthPage from "./pages/AuthPage";
+import LandingPage from "./pages/LandingPage";
 import ResetPassword from "./pages/ResetPassword";
+import SubscriptionGate from "./components/SubscriptionGate";
 import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
@@ -27,18 +28,27 @@ const AppRouter = () => {
     );
   }
 
-  if (!user) return <AuthPage />;
+  if (!user) return <LandingPage />;
 
   // Determine available views based on role
   const isAdmin = roles.includes("admin");
   const isReviewer = roles.includes("reviewer");
   const isSuperAdmin = roles.includes("super_admin");
 
-  if (role === "caregiver") return <CaregiverView />;
-  if (role === "admin" && (isAdmin || isReviewer || isSuperAdmin)) return <AdminDashboard />;
+  // Super admins bypass subscription gate
   if (role === "super_admin" && isSuperAdmin) return <SuperAdminDashboard />;
 
-  return <Index isAdmin={isAdmin} isReviewer={isReviewer} isSuperAdmin={isSuperAdmin} signOut={signOut} />;
+  return (
+    <SubscriptionGate signOut={signOut}>
+      {role === "caregiver" ? (
+        <CaregiverView />
+      ) : role === "admin" && (isAdmin || isReviewer || isSuperAdmin) ? (
+        <AdminDashboard />
+      ) : (
+        <Index isAdmin={isAdmin} isReviewer={isReviewer} isSuperAdmin={isSuperAdmin} signOut={signOut} />
+      )}
+    </SubscriptionGate>
+  );
 };
 
 const App = () => (
