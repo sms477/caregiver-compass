@@ -11,7 +11,7 @@ import {
   FileText, Users, TrendingUp, Shield, Play, Receipt,
   LayoutDashboard, UserCircle, ChevronRight, Building2, FileCheck,
   CalendarIcon, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon,
-  Home, History, Activity, Wallet, CreditCard
+  Home, History, Activity, Wallet, CreditCard, MapPin
 } from "lucide-react";
 import { formatCurrency } from "@/lib/payroll";
 import { buildPayRun } from "@/lib/payroll";
