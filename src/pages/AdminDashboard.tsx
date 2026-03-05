@@ -11,7 +11,7 @@ import {
   FileText, Users, TrendingUp, Shield, Play, Receipt,
   LayoutDashboard, UserCircle, ChevronRight, Building2, FileCheck,
   CalendarIcon, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon,
-  Home, History, Activity, Wallet
+  Home, History, Activity, Wallet, CreditCard
 } from "lucide-react";
 import { formatCurrency } from "@/lib/payroll";
 import { buildPayRun } from "@/lib/payroll";
@@ -31,11 +31,13 @@ import AcuityReview from "@/components/admin/AcuityReview";
 import BillingDashboard from "@/components/admin/BillingDashboard";
 import AdminDashboardHome from "@/components/admin/AdminDashboardHome";
 import CRMDashboard from "@/components/admin/crm/CRMDashboard";
-import { type ProspectConversionData } from "@/components/admin/ResidentsManager";
+import SubscriptionBilling from "@/components/admin/SubscriptionBilling";
 import { type Prospect } from "@/hooks/useCRM";
 import { Heart } from "lucide-react";
 
-type AdminTab = "dashboard" | "crm" | "run-payroll" | "employees" | "residents" | "acuity-review" | "billing" | "incidents" | "pay-stubs" | "payments" | "tax-forms" | "reports" | "shifts" | "audit-trail";
+import { type ProspectConversionData } from "@/components/admin/ResidentsManager";
+
+type AdminTab = "dashboard" | "crm" | "run-payroll" | "employees" | "residents" | "acuity-review" | "billing" | "incidents" | "pay-stubs" | "payments" | "tax-forms" | "reports" | "shifts" | "audit-trail" | "subscription";
 
 const NAV_ITEMS: { key: AdminTab; label: string; icon: React.ElementType }[] = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -52,6 +54,7 @@ const NAV_ITEMS: { key: AdminTab; label: string; icon: React.ElementType }[] = [
   { key: "reports", label: "Reports", icon: TrendingUp },
   { key: "shifts", label: "Shift Log", icon: FileText },
   { key: "audit-trail", label: "Audit Trail", icon: History },
+  { key: "subscription", label: "Subscription", icon: CreditCard },
 ];
 
 const AdminDashboard = () => {
@@ -228,6 +231,7 @@ const AdminDashboard = () => {
           {tab === "tax-forms" && <TaxFormsView />}
           {tab === "reports" && <ReportsCenter />}
           {tab === "audit-trail" && <AuditTrailView />}
+          {tab === "subscription" && <SubscriptionBilling />}
 
           {tab === "shifts" && (
             <ShiftLogView shifts={completedShifts} onRefresh={() => setRefreshKey(k => k + 1)} />

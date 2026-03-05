@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useApp } from "@/contexts/AppContext";
 import { Organization } from "@/hooks/useOrganizations";
-import { ArrowLeft, Building2, MapPin, Users, LayoutDashboard } from "lucide-react";
+import { ArrowLeft, Building2, MapPin, Users, LayoutDashboard, CreditCard } from "lucide-react";
 import OrganizationsManager from "@/components/superadmin/OrganizationsManager";
 import LocationsManager from "@/components/superadmin/LocationsManager";
 import MembersManager from "@/components/superadmin/MembersManager";
+import SuperAdminBilling from "@/components/superadmin/SuperAdminBilling";
 
-type SuperTab = "orgs" | "locations" | "members";
+type SuperTab = "orgs" | "locations" | "members" | "billing";
 
 const SuperAdminDashboard = () => {
   const { setRole } = useApp();
@@ -27,6 +28,7 @@ const SuperAdminDashboard = () => {
     { key: "orgs", label: "Organizations", icon: Building2 },
     { key: "locations", label: "Locations", icon: MapPin, requiresOrg: true },
     { key: "members", label: "Members", icon: Users, requiresOrg: true },
+    { key: "billing", label: "Billing", icon: CreditCard },
   ];
 
   return (
@@ -142,6 +144,7 @@ const SuperAdminDashboard = () => {
           {tab === "members" && selectedOrg && (
             <MembersManager org={selectedOrg} onBack={handleBackToOrgs} />
           )}
+          {tab === "billing" && <SuperAdminBilling />}
         </div>
       </main>
     </div>
