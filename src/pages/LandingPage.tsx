@@ -200,8 +200,8 @@ const LandingPage = () => {
               onClick={() => setMode("signup")}
               className="rounded-xl bg-primary text-primary-foreground font-semibold px-8 py-3.5 text-sm shadow-lg hover:shadow-xl active:scale-[0.97] transition-all flex items-center justify-center gap-2"
             >
-              <Sparkles className="w-4 h-4" />
-              Start 7-Day Free Trial
+             <Sparkles className="w-4 h-4" />
+              Start Free — 7-Day Trial
             </button>
             <button
               onClick={() => setMode("login")}
