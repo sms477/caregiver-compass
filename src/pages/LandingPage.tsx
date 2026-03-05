@@ -77,19 +77,49 @@ const LandingPage = () => {
 
           <form onSubmit={isSignUp ? handleSignUp : handleSignIn} className="space-y-4">
             {isSignUp && (
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Name</label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <input
-                    type="text"
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    placeholder="Your name"
-                    className="w-full rounded-lg border border-border bg-background pl-10 pr-3 py-2.5 text-sm text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
-                  />
+              <>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Your Name</label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <input
+                      type="text"
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      placeholder="Your name"
+                      className="w-full rounded-lg border border-border bg-background pl-10 pr-3 py-2.5 text-sm text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
+                    />
+                  </div>
                 </div>
-              </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Organization Name *</label>
+                  <div className="relative">
+                    <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <input
+                      type="text"
+                      value={orgName}
+                      onChange={(e) => setOrgName(e.target.value)}
+                      placeholder="e.g. Sunrise Senior Care"
+                      required
+                      className="w-full rounded-lg border border-border bg-background pl-10 pr-3 py-2.5 text-sm text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Facility Name</label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <input
+                      type="text"
+                      value={facilityName}
+                      onChange={(e) => setFacilityName(e.target.value)}
+                      placeholder="e.g. Oak Street Home"
+                      className="w-full rounded-lg border border-border bg-background pl-10 pr-3 py-2.5 text-sm text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">Your first RCFE location (optional, can add later)</p>
+                </div>
+              </>
             )}
 
             <div className="space-y-1.5">
