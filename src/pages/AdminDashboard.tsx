@@ -234,6 +234,7 @@ const AdminDashboard = () => {
           {tab === "reports" && <ReportsCenter />}
           {tab === "audit-trail" && <AuditTrailView />}
           {tab === "subscription" && <SubscriptionBilling />}
+          {tab === "locations" && <AdminLocationsManager />}
 
           {tab === "shifts" && (
             <ShiftLogView shifts={completedShifts} onRefresh={() => setRefreshKey(k => k + 1)} />
