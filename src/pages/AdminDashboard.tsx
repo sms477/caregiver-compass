@@ -38,7 +38,7 @@ import { Heart } from "lucide-react";
 
 import { type ProspectConversionData } from "@/components/admin/ResidentsManager";
 
-type AdminTab = "dashboard" | "crm" | "run-payroll" | "employees" | "residents" | "acuity-review" | "billing" | "incidents" | "pay-stubs" | "payments" | "tax-forms" | "reports" | "shifts" | "audit-trail" | "subscription";
+type AdminTab = "dashboard" | "crm" | "run-payroll" | "employees" | "residents" | "acuity-review" | "billing" | "incidents" | "pay-stubs" | "payments" | "tax-forms" | "reports" | "shifts" | "audit-trail" | "subscription" | "locations";
 
 const NAV_ITEMS: { key: AdminTab; label: string; icon: React.ElementType }[] = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
