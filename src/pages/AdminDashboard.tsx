@@ -56,6 +56,7 @@ const NAV_ITEMS: { key: AdminTab; label: string; icon: React.ElementType }[] = [
   { key: "shifts", label: "Shift Log", icon: FileText },
   { key: "audit-trail", label: "Audit Trail", icon: History },
   { key: "subscription", label: "Subscription", icon: CreditCard },
+  { key: "locations", label: "Locations", icon: MapPin },
 ];
 
 const AdminDashboard = () => {
