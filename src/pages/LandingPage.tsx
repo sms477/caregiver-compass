@@ -227,19 +227,19 @@ const LandingPage = () => {
             All-in-one platform for RCFE operators — scheduling, payroll, compliance, billing, and CRM in one place.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+          <div className="flex flex-col gap-3 items-center pt-2">
             <button
               onClick={() => setMode("signup")}
               className="rounded-xl bg-primary text-primary-foreground font-semibold px-8 py-3.5 text-sm shadow-lg hover:shadow-xl active:scale-[0.97] transition-all flex items-center justify-center gap-2"
             >
-             <Sparkles className="w-4 h-4" />
+              <Sparkles className="w-4 h-4" />
               Start Free — 7-Day Trial
             </button>
             <button
               onClick={() => setMode("login")}
-              className="rounded-xl border border-border bg-background text-foreground font-semibold px-8 py-3.5 text-sm hover:bg-muted transition-all"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              Sign In
+              Already have an account? Sign in
             </button>
           </div>
           <p className="text-xs text-muted-foreground">No credit card required · Cancel anytime</p>
