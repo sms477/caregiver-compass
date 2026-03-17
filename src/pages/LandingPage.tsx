@@ -1,8 +1,14 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { CheckCircle2, Sparkles, ArrowRight, Mail, Lock, Loader2, User, Building2, MapPin } from "lucide-react";
+import { Mail, Lock, Loader2, User, Building2, MapPin } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { PLAN } from "@/components/admin/SubscriptionBilling";
+import HeroSection from "@/components/landing/HeroSection";
+import FeaturesSection from "@/components/landing/FeaturesSection";
+import HowItWorksSection from "@/components/landing/HowItWorksSection";
+import TestimonialsSection from "@/components/landing/TestimonialsSection";
+import FAQSection from "@/components/landing/FAQSection";
+import PricingSection from "@/components/landing/PricingSection";
+import FooterSection from "@/components/landing/FooterSection";
 
 const LandingPage = () => {
   const [mode, setMode] = useState<"landing" | "signup" | "login" | "check_email">("landing");
