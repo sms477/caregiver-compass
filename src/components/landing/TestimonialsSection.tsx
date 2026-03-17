@@ -1,3 +1,5 @@
+import residentsGardenImg from "@/assets/residents-garden.jpg";
+
 const testimonials = [
   {
     quote: "EasyRCFE replaced three different tools we were using. Payroll alone saves us hours every week.",
@@ -24,6 +26,16 @@ const TestimonialsSection = () => (
         <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground tracking-tight">
           What our customers say
         </h2>
+      </div>
+
+      {/* Banner image */}
+      <div className="rounded-3xl overflow-hidden mb-12 shadow-lg border border-border/50">
+        <img
+          src={residentsGardenImg}
+          alt="Happy elderly residents enjoying tea together in a sunlit garden"
+          className="w-full h-48 md:h-64 object-cover"
+          loading="lazy"
+        />
       </div>
 
       <div className="grid md:grid-cols-3 gap-6">
