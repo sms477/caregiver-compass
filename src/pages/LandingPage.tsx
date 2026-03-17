@@ -37,9 +37,9 @@ const LandingPage = () => {
       if (error) throw error;
       toast({
         title: "Account created!",
-        description: "Check your email to verify your account, then sign in.",
+        description: "Check your email to verify your account, then continue to sign in.",
       });
-      setMode("login");
+      setMode("check_email");
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
     } finally {
