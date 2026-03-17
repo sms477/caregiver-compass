@@ -220,67 +220,13 @@ const LandingPage = () => {
   // Landing page
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Hero */}
-      <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-        <div className="max-w-2xl space-y-6 animate-slide-up">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-primary text-primary-foreground mb-2">
-            <span className="text-3xl font-display font-black tracking-tight">E</span>
-          </div>
-          <h1 className="text-4xl md:text-5xl font-display font-bold text-foreground tracking-tight">
-            Residential Care,<br />Made Easy
-          </h1>
-          <p className="text-lg text-muted-foreground max-w-lg mx-auto">
-            All-in-one platform for RCFE operators — scheduling, payroll, compliance, billing, and CRM in one place.
-          </p>
-
-          <div className="flex flex-col gap-3 items-center pt-2">
-            <button
-              onClick={() => setMode("signup")}
-              className="rounded-xl bg-primary text-primary-foreground font-semibold px-8 py-3.5 text-sm shadow-lg hover:shadow-xl active:scale-[0.97] transition-all flex items-center justify-center gap-2"
-            >
-              <Sparkles className="w-4 h-4" />
-              Start Free — 7-Day Trial
-            </button>
-            <button
-              onClick={() => setMode("login")}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Already have an account? Sign in
-            </button>
-          </div>
-          <p className="text-xs text-muted-foreground">No credit card required · Cancel anytime</p>
-        </div>
-      </div>
-
-      {/* Pricing Card */}
-      <div className="px-6 pb-16">
-        <div className="max-w-md mx-auto glass-card rounded-2xl p-8 space-y-6">
-          <div className="text-center space-y-1">
-            <h2 className="text-2xl font-display font-bold text-foreground">{PLAN.name}</h2>
-            <div className="flex items-baseline justify-center gap-1">
-              <span className="text-4xl font-display font-bold text-foreground">{PLAN.price}</span>
-              <span className="text-muted-foreground text-sm">/{PLAN.interval}</span>
-            </div>
-            <p className="text-sm text-muted-foreground">per organization</p>
-          </div>
-
-          <ul className="space-y-3">
-            {PLAN.features.map((f, i) => (
-              <li key={i} className="flex items-center gap-3 text-sm text-muted-foreground">
-                <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
-                {f}
-              </li>
-            ))}
-          </ul>
-
-          <button
-            onClick={() => setMode("signup")}
-            className="w-full rounded-xl bg-primary text-primary-foreground font-semibold py-3 text-sm shadow-md hover:shadow-lg active:scale-[0.97] transition-all flex items-center justify-center gap-2"
-          >
-            Create Account — 7 Days Free <ArrowRight className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
+      <HeroSection onStartTrial={() => setMode("signup")} onSignIn={() => setMode("login")} />
+      <FeaturesSection />
+      <HowItWorksSection />
+      <TestimonialsSection />
+      <PricingSection onStartTrial={() => setMode("signup")} />
+      <FAQSection />
+      <FooterSection />
     </div>
   );
 };
