@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { PLAN } from "@/components/admin/SubscriptionBilling";
 
 const LandingPage = () => {
-  const [mode, setMode] = useState<"landing" | "signup" | "login">("landing");
+  const [mode, setMode] = useState<"landing" | "signup" | "login" | "check_email">("landing");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
