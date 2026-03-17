@@ -60,6 +60,38 @@ const LandingPage = () => {
     }
   };
 
+  if (mode === "check_email") {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
+        <div className="w-full max-w-sm space-y-6 animate-slide-up text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary text-primary-foreground mx-auto">
+            <Mail className="w-7 h-7" />
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-3xl font-display font-bold text-foreground tracking-tight">Check your email</h1>
+            <p className="text-sm text-muted-foreground">
+              We sent a verification link to <span className="font-medium text-foreground">{email}</span>. Verify your email, then continue to sign in.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <button
+              onClick={() => setMode("login")}
+              className="w-full rounded-xl bg-primary text-primary-foreground font-semibold py-3 text-sm shadow-md hover:shadow-lg active:scale-[0.97] transition-all"
+            >
+              I verified my email
+            </button>
+            <button
+              onClick={() => setMode("signup")}
+              className="w-full rounded-xl border border-border bg-background text-foreground font-semibold py-3 text-sm hover:bg-muted transition-all"
+            >
+              Use a different email
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (mode === "signup" || mode === "login") {
     const isSignUp = mode === "signup";
     return (
