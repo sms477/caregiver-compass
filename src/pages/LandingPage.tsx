@@ -8,6 +8,7 @@ import HowItWorksSection from "@/components/landing/HowItWorksSection";
 import TestimonialsSection from "@/components/landing/TestimonialsSection";
 import FAQSection from "@/components/landing/FAQSection";
 import PricingSection from "@/components/landing/PricingSection";
+import ComparisonSection from "@/components/landing/ComparisonSection";
 import FooterSection from "@/components/landing/FooterSection";
 
 const LandingPage = () => {
@@ -223,6 +224,7 @@ const LandingPage = () => {
       <HeroSection onStartTrial={() => setMode("signup")} onSignIn={() => setMode("login")} />
       <FeaturesSection />
       <HowItWorksSection />
+      <ComparisonSection onStartTrial={() => setMode("signup")} />
       <TestimonialsSection />
       <PricingSection onStartTrial={() => setMode("signup")} />
       <FAQSection />
