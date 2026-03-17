@@ -224,6 +224,7 @@ const LandingPage = () => {
       <HeroSection onStartTrial={() => setMode("signup")} onSignIn={() => setMode("login")} />
       <FeaturesSection />
       <HowItWorksSection />
+      <ComparisonSection onStartTrial={() => setMode("signup")} />
       <TestimonialsSection />
       <PricingSection onStartTrial={() => setMode("signup")} />
       <FAQSection />
