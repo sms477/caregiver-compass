@@ -35,7 +35,13 @@ const AppRouter = () => {
   const isReviewer = roles.includes("reviewer");
   const isSuperAdmin = roles.includes("super_admin");
 
-  // Super admins bypass subscription gate
+  // Super admins bypass subscription gate entirely
+  if (isSuperAdmin && (role === "super_admin" || role === null)) {
+    if (role === "super_admin") return <SuperAdminDashboard />;
+    // Let super admin reach role selector without paywall
+    return <Index isAdmin={isAdmin} isReviewer={isReviewer} isSuperAdmin={isSuperAdmin} signOut={signOut} />;
+  }
+
   if (role === "super_admin" && isSuperAdmin) return <SuperAdminDashboard />;
 
   return (
