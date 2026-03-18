@@ -145,7 +145,8 @@ export function useCRM() {
   };
 
   const addTour = async (data: Partial<Tour>) => {
-    const { error } = await supabase.from("tours").insert(data as any);
+    const insertData = { ...data, location_id: data.location_id || userLocationId };
+    const { error } = await supabase.from("tours").insert(insertData as any);
     if (!error) await refresh();
     return error;
   };
@@ -157,7 +158,8 @@ export function useCRM() {
   };
 
   const addFamilyContact = async (data: Partial<FamilyContact>) => {
-    const { error } = await supabase.from("family_contacts").insert(data as any);
+    const insertData = { ...data, location_id: data.location_id || userLocationId };
+    const { error } = await supabase.from("family_contacts").insert(insertData as any);
     if (!error) await refresh();
     return error;
   };
