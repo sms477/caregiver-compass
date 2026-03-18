@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
     }
 
     // Parse request
-    const { email, display_name, hourly_rate, job_title, role, org_id, location_id } = await req.json();
+    const { email, display_name, hourly_rate, job_title, role, org_id, location_id, site_url } = await req.json();
     if (!email || !display_name) {
       return new Response(JSON.stringify({ error: "Email and display name are required" }), {
         status: 400,
