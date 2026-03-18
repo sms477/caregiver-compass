@@ -26,6 +26,7 @@ const SuperAdminDashboard = () => {
   };
 
   const NAV_ITEMS: { key: SuperTab; label: string; icon: React.ElementType; requiresOrg?: boolean }[] = [
+    { key: "trials", label: "Trials & Conversions", icon: TrendingUp },
     { key: "orgs", label: "Organizations", icon: Building2 },
     { key: "locations", label: "Locations", icon: MapPin, requiresOrg: true },
     { key: "members", label: "Members", icon: Users, requiresOrg: true },
