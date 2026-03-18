@@ -12,7 +12,7 @@ type SuperTab = "orgs" | "locations" | "members" | "billing" | "trials";
 
 const SuperAdminDashboard = () => {
   const { setRole } = useApp();
-  const [tab, setTab] = useState<SuperTab>("orgs");
+  const [tab, setTab] = useState<SuperTab>("trials");
   const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null);
 
   const handleSelectOrg = (org: Organization) => {
