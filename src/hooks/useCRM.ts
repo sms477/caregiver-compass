@@ -74,6 +74,31 @@ export function useCRM() {
   const [tours, setTours] = useState<Tour[]>([]);
   const [familyContacts, setFamilyContacts] = useState<FamilyContact[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userLocationId, setUserLocationId] = useState<string | null>(null);
+
+  // Fetch user's first accessible location for auto-setting on inserts
+  useEffect(() => {
+    (async () => {
+      const { data: session } = await supabase.auth.getSession();
+      const userId = session?.session?.user?.id;
+      if (!userId) return;
+      const { data } = await supabase
+        .from("org_memberships")
+        .select("org_id")
+        .eq("user_id", userId)
+        .limit(1)
+        .single();
+      if (data) {
+        const { data: loc } = await supabase
+          .from("locations")
+          .select("id")
+          .eq("org_id", data.org_id)
+          .limit(1)
+          .single();
+        if (loc) setUserLocationId(loc.id);
+      }
+    })();
+  }, []);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -97,7 +122,8 @@ export function useCRM() {
   useEffect(() => { refresh(); }, [refresh]);
 
   const addProspect = async (data: Partial<Prospect>) => {
-    const { error } = await supabase.from("prospects").insert(data as any);
+    const insertData = { ...data, location_id: data.location_id || userLocationId };
+    const { error } = await supabase.from("prospects").insert(insertData as any);
     if (!error) await refresh();
     return error;
   };
