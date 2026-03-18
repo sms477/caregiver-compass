@@ -62,12 +62,43 @@ const EmployeeProfiles = () => {
     setInviteLink(null);
 
     try {
+      // Get caller's org and location
+      const { data: session } = await supabase.auth.getSession();
+      const userId = session?.session?.user?.id;
+      let org_id: string | null = null;
+      let location_id: string | null = null;
+      if (userId) {
+        const { data: membership } = await supabase
+          .from("org_memberships")
+          .select("org_id, location_id")
+          .eq("user_id", userId)
+          .limit(1)
+          .single();
+        if (membership) {
+          org_id = membership.org_id;
+          // If admin has no specific location, get the first location in the org
+          if (!membership.location_id) {
+            const { data: loc } = await supabase
+              .from("locations")
+              .select("id")
+              .eq("org_id", membership.org_id)
+              .limit(1)
+              .single();
+            location_id = loc?.id || null;
+          } else {
+            location_id = membership.location_id;
+          }
+        }
+      }
+
       const { data, error } = await supabase.functions.invoke("invite-team-member", {
         body: {
           email: inviteForm.email,
           display_name: inviteForm.name,
           hourly_rate: parseFloat(inviteForm.hourlyRate) || 0,
           job_title: inviteForm.jobTitle || "Caregiver",
+          org_id,
+          location_id,
         },
       });
 
