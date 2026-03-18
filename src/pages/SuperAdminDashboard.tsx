@@ -146,6 +146,7 @@ const SuperAdminDashboard = () => {
           {tab === "members" && selectedOrg && (
             <MembersManager org={selectedOrg} onBack={handleBackToOrgs} />
           )}
+          {tab === "trials" && <TrialTracker />}
           {tab === "billing" && <SuperAdminBilling />}
         </div>
       </main>
