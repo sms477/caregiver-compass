@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { useApp } from "@/contexts/AppContext";
 import { Organization } from "@/hooks/useOrganizations";
-import { ArrowLeft, Building2, MapPin, Users, LayoutDashboard, CreditCard } from "lucide-react";
+import { ArrowLeft, Building2, MapPin, Users, LayoutDashboard, CreditCard, TrendingUp } from "lucide-react";
 import OrganizationsManager from "@/components/superadmin/OrganizationsManager";
 import LocationsManager from "@/components/superadmin/LocationsManager";
 import MembersManager from "@/components/superadmin/MembersManager";
 import SuperAdminBilling from "@/components/superadmin/SuperAdminBilling";
+import TrialTracker from "@/components/superadmin/TrialTracker";
 
-type SuperTab = "orgs" | "locations" | "members" | "billing";
+type SuperTab = "orgs" | "locations" | "members" | "billing" | "trials";
 
 const SuperAdminDashboard = () => {
   const { setRole } = useApp();
