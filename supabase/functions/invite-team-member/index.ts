@@ -157,7 +157,6 @@ Deno.serve(async (req) => {
     }
 
     // Generate password reset link
-    const { site_url } = await req.json().catch(() => ({}));
     const siteUrl = site_url || Deno.env.get("SITE_URL") || req.headers.get("origin") || "";
     const { data: resetData } = await adminClient.auth.admin.generateLink({
       type: "recovery",
