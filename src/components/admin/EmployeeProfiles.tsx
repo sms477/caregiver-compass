@@ -99,6 +99,7 @@ const EmployeeProfiles = () => {
           job_title: inviteForm.jobTitle || "Caregiver",
           org_id,
           location_id,
+          site_url: window.location.origin,
         },
       });
 
