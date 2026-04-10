@@ -2,6 +2,11 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { Loader2, CheckCircle2, ArrowRight, LogOut, AlertTriangle, CreditCard, Settings } from "lucide-react";
 import { PLAN } from "@/components/admin/SubscriptionBilling";
 import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
+
+// Owner emails that always bypass the subscription gate
+const OWNER_EMAILS = ["spencerstein@gmail.com"];
 
 interface SubscriptionGateProps {
   children: React.ReactNode;
@@ -10,8 +15,17 @@ interface SubscriptionGateProps {
 
 const SubscriptionGate = ({ children, signOut }: SubscriptionGateProps) => {
   const { subscribed, loading, trialEnd, startCheckout, openPortal, checkSubscription } = useSubscription();
+  const [isOwner, setIsOwner] = useState(false);
 
-  if (loading) {
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user?.email && OWNER_EMAILS.includes(session.user.email.toLowerCase())) {
+        setIsOwner(true);
+      }
+    });
+  }, []);
+
+  if (loading && !isOwner) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-primary animate-spin" />
@@ -19,7 +33,7 @@ const SubscriptionGate = ({ children, signOut }: SubscriptionGateProps) => {
     );
   }
 
-  if (subscribed) {
+  if (subscribed || isOwner) {
     return <>{children}</>;
   }
 
